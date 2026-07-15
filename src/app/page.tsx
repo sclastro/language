@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import MessageBubble from "@/components/MessageBubble";
 import CorrectionCard from "@/components/CorrectionCard";
+import SpeakerButton from "@/components/SpeakerButton";
+import { useRecorder } from "@/hooks/useRecorder";
 import type {
   ChatApiResponse,
   ChatMessage,
@@ -42,6 +43,17 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement>(null);
+
+  const {
+    recording,
+    transcribing,
+    supported: micSupported,
+    start: startRec,
+    stop: stopRec,
+  } = useRecorder({
+    onResult: (t) => setInput((prev) => (prev ? prev.trimEnd() + " " : "") + t),
+    onError: (m) => setError(m),
+  });
 
   // 由 localStorage 還原
   useEffect(() => {
@@ -192,7 +204,10 @@ export default function Home() {
               {it.corrections && <CorrectionCard corrections={it.corrections} />}
             </div>
           ) : (
-            <MessageBubble key={i} role="assistant" content={it.content} />
+            <div key={i} className="row assistant">
+              <div className="bubble">{it.content}</div>
+              <SpeakerButton text={it.content} title="讀出 AI 回覆" />
+            </div>
           )
         )}
 
@@ -202,11 +217,29 @@ export default function Home() {
       {error && <div className="statusbar error">⚠️ {error}</div>}
 
       <div className="composer">
+        {micSupported && (
+          <button
+            type="button"
+            className={`mic ${recording ? "recording" : ""}`}
+            onClick={recording ? stopRec : startRec}
+            disabled={transcribing}
+            title={recording ? "停止錄音" : "㩒住講英文"}
+            aria-label={recording ? "停止錄音" : "錄音"}
+          >
+            {transcribing ? "…" : recording ? "⏹" : "🎤"}
+          </button>
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Type in English…  (Enter 送出,Shift+Enter 換行)"
+          placeholder={
+            recording
+              ? "錄緊音…㩒 ⏹ 停"
+              : transcribing
+                ? "轉緊文字…"
+                : "Type in English…  (Enter 送出,Shift+Enter 換行)"
+          }
           rows={1}
         />
         <button className="send" onClick={send} disabled={loading || !input.trim()}>

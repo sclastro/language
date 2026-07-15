@@ -1,4 +1,5 @@
 import type { Correction } from "@/lib/types";
+import SpeakerButton from "./SpeakerButton";
 
 export default function CorrectionCard({
   corrections,
@@ -22,6 +23,7 @@ export default function CorrectionCard({
             <span className="orig">{c.original}</span>
             <span className="arrow">→</span>
             <span className="fixed">{c.corrected}</span>
+            <SpeakerButton text={c.corrected} title="讀出正確版本" />
           </div>
           {c.explanation && <div className="explain">{c.explanation}</div>}
         </div>
