@@ -5,12 +5,13 @@
 
 /**
  * 可以喺 UI 切換嘅模型清單。ID 要同 Poe /v1/models 一致(全部細楷)。
- * 由平到貴大約:gemini-3.1-pro < gpt-5.4 < claude-sonnet-4.6 < claude-opus-4.8。
+ * 注意:Poe 手機 app 嘅新 model(例如 GPT-5.6)未必已經上到 API;
+ * 呢度只放 /v1/models 真係支援嘅名。gpt-5.4-pro 係 API 現時最強嘅 GPT。
  */
 export const AVAILABLE_MODELS = [
   "claude-opus-4.8",
   "claude-sonnet-4.6",
-  "gpt-5.4",
+  "gpt-5.4-pro",
   "gemini-3.1-pro",
 ] as const;
 
