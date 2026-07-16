@@ -8,10 +8,14 @@ export type Correction = {
   explanation: string;
 };
 
-/** 模型每次回覆嘅結構:一句自然英文延續對話 + 針對最新一句嘅糾正。 */
+/** 模型每次回覆嘅結構。 */
 export type TutorResponse = {
+  /** 淨係對話英文回覆(唔含糾正/中文)。 */
   reply: string;
+  /** 針對最新一句嘅逐點糾正。 */
   corrections: Correction[];
+  /** 用戶最新一句嘅完整正確／自然英文版本;冇需要改就同原句一樣。 */
+  rewrite: string;
 };
 
 /** 聊天訊息(前端同 API 之間傳嘅格式)。 */

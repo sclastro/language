@@ -3,8 +3,12 @@ import SpeakerButton from "./SpeakerButton";
 
 export default function CorrectionCard({
   corrections,
+  rewrite,
+  original,
 }: {
   corrections: Correction[];
+  rewrite?: string;
+  original?: string;
 }) {
   if (corrections.length === 0) {
     return (
@@ -13,6 +17,10 @@ export default function CorrectionCard({
       </div>
     );
   }
+
+  // 完整正確版本:有 rewrite 而且同原句唔一樣先顯示。
+  const showRewrite =
+    !!rewrite && rewrite.trim() !== "" && rewrite.trim() !== (original ?? "").trim();
 
   return (
     <div className="correction">
@@ -28,6 +36,16 @@ export default function CorrectionCard({
           {c.explanation && <div className="explain">{c.explanation}</div>}
         </div>
       ))}
+
+      {showRewrite && (
+        <div className="rewrite">
+          <div className="rewrite-head">✍️ 完整正確版本</div>
+          <div className="rewrite-body">
+            <span className="rewrite-text">{rewrite}</span>
+            <SpeakerButton text={rewrite!} title="讀出完整正確版本" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,12 @@ import type {
 import { AVAILABLE_MODELS, CLIENT_DEFAULT_MODEL } from "@/lib/models";
 
 /** 一格對話:用戶嗰句會夾埋 AI 俾嘅糾正。 */
-type UserItem = { kind: "user"; content: string; corrections?: Correction[] };
+type UserItem = {
+  kind: "user";
+  content: string;
+  corrections?: Correction[];
+  rewrite?: string;
+};
 type AssistantItem = { kind: "assistant"; content: string };
 type Item = UserItem | AssistantItem;
 
@@ -139,7 +144,11 @@ export default function Home() {
         const copy = [...prev];
         for (let i = copy.length - 1; i >= 0; i--) {
           if (copy[i].kind === "user") {
-            copy[i] = { ...(copy[i] as UserItem), corrections: data.corrections };
+            copy[i] = {
+              ...(copy[i] as UserItem),
+              corrections: data.corrections,
+              rewrite: data.rewrite,
+            };
             break;
           }
         }
@@ -222,7 +231,13 @@ export default function Home() {
           it.kind === "user" ? (
             <div key={i} className="row user">
               <div className="bubble">{it.content}</div>
-              {it.corrections && <CorrectionCard corrections={it.corrections} />}
+              {it.corrections && (
+                <CorrectionCard
+                  corrections={it.corrections}
+                  rewrite={it.rewrite}
+                  original={it.content}
+                />
+              )}
             </div>
           ) : (
             <div key={i} className="row assistant">
