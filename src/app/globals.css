@@ -42,8 +42,11 @@ textarea {
   max-width: 820px;
   margin: 0 auto;
   height: 100vh;
+  height: 100dvh; /* 手機 browser / PWA 更準 */
   display: flex;
   flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ---- header ---- */
@@ -171,6 +174,32 @@ textarea {
   color: var(--good);
 }
 
+/* ---- speaker (TTS) button ---- */
+.speaker {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+  opacity: 0.75;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.speaker:hover {
+  opacity: 1;
+  background: var(--panel-2);
+}
+.speaker:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.row.assistant .speaker {
+  align-self: flex-start;
+  margin-left: 2px;
+}
+
 /* ---- composer ---- */
 .composer {
   border-top: 1px solid var(--border);
@@ -205,6 +234,36 @@ textarea {
   opacity: 0.5;
   cursor: default;
 }
+.composer .mic {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+}
+.composer .mic:hover {
+  border-color: var(--accent);
+}
+.composer .mic:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.composer .mic.recording {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: var(--danger);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(248, 81, 73, 0);
+  }
+}
 
 .statusbar {
   padding: 6px 18px 10px;
@@ -221,4 +280,66 @@ textarea {
   color: var(--muted);
   font-size: 13px;
   font-style: italic;
+}
+
+/* ---- login gate ---- */
+.login-wrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+.login-icon {
+  font-size: 32px;
+}
+.login-card h1 {
+  font-size: 19px;
+  margin: 0;
+}
+.login-sub {
+  color: var(--muted);
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.login-card input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: var(--text);
+}
+.login-card input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.login-card button {
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  padding: 11px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+.login-card button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.login-error {
+  color: var(--danger);
+  font-size: 13px;
 }

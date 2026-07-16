@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import MessageBubble from "@/components/MessageBubble";
 import CorrectionCard from "@/components/CorrectionCard";
+import SpeakerButton from "@/components/SpeakerButton";
+import { useRecorder } from "@/hooks/useRecorder";
 import type {
   ChatApiResponse,
   ChatMessage,
@@ -40,8 +41,20 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [gated, setGated] = useState(false); // 有冇開密碼保護(睇可讀 cookie)
 
   const messagesRef = useRef<HTMLDivElement>(null);
+
+  const {
+    recording,
+    transcribing,
+    supported: micSupported,
+    start: startRec,
+    stop: stopRec,
+  } = useRecorder({
+    onResult: (t) => setInput((prev) => (prev ? prev.trimEnd() + " " : "") + t),
+    onError: (m) => setError(m),
+  });
 
   // 由 localStorage 還原
   useEffect(() => {
@@ -58,7 +71,13 @@ export default function Home() {
       /* 壞資料就當冇 */
     }
     setHydrated(true);
+    setGated(document.cookie.split("; ").some((c) => c === "et_ui=1"));
   }, []);
+
+  async function logout() {
+    await fetch("/api/logout", { method: "POST" }).catch(() => {});
+    window.location.href = "/login";
+  }
 
   // 存返 localStorage
   useEffect(() => {
@@ -173,6 +192,11 @@ export default function Home() {
           <button className="ghost-btn" onClick={clearAll}>
             清除
           </button>
+          {gated && (
+            <button className="ghost-btn" onClick={logout} title="登出">
+              🔒
+            </button>
+          )}
         </div>
       </header>
 
@@ -192,7 +216,10 @@ export default function Home() {
               {it.corrections && <CorrectionCard corrections={it.corrections} />}
             </div>
           ) : (
-            <MessageBubble key={i} role="assistant" content={it.content} />
+            <div key={i} className="row assistant">
+              <div className="bubble">{it.content}</div>
+              <SpeakerButton text={it.content} title="讀出 AI 回覆" />
+            </div>
           )
         )}
 
@@ -202,11 +229,29 @@ export default function Home() {
       {error && <div className="statusbar error">⚠️ {error}</div>}
 
       <div className="composer">
+        {micSupported && (
+          <button
+            type="button"
+            className={`mic ${recording ? "recording" : ""}`}
+            onClick={recording ? stopRec : startRec}
+            disabled={transcribing}
+            title={recording ? "停止錄音" : "㩒住講英文"}
+            aria-label={recording ? "停止錄音" : "錄音"}
+          >
+            {transcribing ? "…" : recording ? "⏹" : "🎤"}
+          </button>
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Type in English…  (Enter 送出,Shift+Enter 換行)"
+          placeholder={
+            recording
+              ? "錄緊音…㩒 ⏹ 停"
+              : transcribing
+                ? "轉緊文字…"
+                : "Type in English…  (Enter 送出,Shift+Enter 換行)"
+          }
           rows={1}
         />
         <button className="send" onClick={send} disabled={loading || !input.trim()}>
