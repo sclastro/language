@@ -1,16 +1,26 @@
 :root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1e222b;
-  --border: #2a2f3a;
-  --text: #e6e8ec;
-  --muted: #9aa3b2;
-  --accent: #4f8cff;
-  --user-bubble: #274b8f;
-  --ai-bubble: #232833;
-  --good: #3fb950;
-  --warn: #d29922;
-  --danger: #f85149;
+  /* 米白暖色淺色主題 */
+  --bg: #f4efe4;
+  --bg-2: #efe8d9;
+  --panel: #fffdf9;
+  --panel-2: #f0e9db;
+  --border: #e6decd;
+  --border-strong: #d9cfb9;
+  --text: #322f28;
+  --muted: #8d8676;
+  --accent: #bd6440;
+  --accent-hover: #a9542f;
+  --accent-soft: #f6e7dd;
+  --user-bubble: #bd6440;
+  --user-text: #fffaf5;
+  --ai-bubble: #fffdf9;
+  --good: #2f8a58;
+  --good-soft: #ecf6ee;
+  --warn: #b07d24;
+  --warn-soft: #fbf3e2;
+  --danger: #c0492f;
+  --shadow: 0 1px 2px rgba(60, 45, 30, 0.05), 0 4px 16px rgba(60, 45, 30, 0.06);
+  --shadow-sm: 0 1px 2px rgba(60, 45, 30, 0.06);
 }
 
 * {
@@ -27,39 +37,46 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", "PingFang HK",
     "Microsoft JhengHei", sans-serif;
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
 select,
-textarea {
+textarea,
+input {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
 }
 
 .app {
-  max-width: 820px;
+  max-width: 760px;
   margin: 0 auto;
   height: 100vh;
-  height: 100dvh; /* 手機 browser / PWA 更準 */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: var(--bg);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ---- header ---- */
 .header {
-  padding: 14px 18px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  background: rgba(255, 253, 249, 0.75);
+  backdrop-filter: blur(8px);
 }
 .header h1 {
   font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
   margin-right: auto;
 }
@@ -70,42 +87,52 @@ textarea {
   flex-wrap: wrap;
 }
 .header select {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 6px 9px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.header select:hover {
+  border-color: var(--accent);
 }
 .header .ghost-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 6px 11px;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, background 0.15s;
 }
 .header .ghost-btn:hover {
-  background: var(--panel-2);
+  background: var(--bg-2);
+  border-color: var(--accent);
 }
 
 /* ---- messages ---- */
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 18px;
+  padding: 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 .empty {
   color: var(--muted);
   text-align: center;
   margin: auto;
-  max-width: 460px;
+  max-width: 440px;
+  line-height: 1.8;
 }
 
 .row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  max-width: 100%;
 }
 .row.user {
   align-items: flex-end;
@@ -114,46 +141,78 @@ textarea {
   align-items: flex-start;
 }
 .bubble {
-  max-width: 78%;
-  padding: 10px 13px;
-  border-radius: 14px;
+  max-width: 80%;
+  padding: 11px 15px;
+  border-radius: 16px;
   white-space: pre-wrap;
   word-break: break-word;
+  box-shadow: var(--shadow-sm);
 }
 .row.user .bubble {
   background: var(--user-bubble);
-  border-bottom-right-radius: 4px;
+  color: var(--user-text);
+  border-bottom-right-radius: 5px;
 }
 .row.assistant .bubble {
   background: var(--ai-bubble);
-  border-bottom-left-radius: 4px;
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 5px;
+}
+
+/* ---- speaker (TTS) button ---- */
+.speaker {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 7px;
+  opacity: 0.65;
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: opacity 0.15s, background 0.15s;
+}
+.speaker:hover {
+  opacity: 1;
+  background: var(--accent-soft);
+}
+.speaker:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.row.assistant .speaker {
+  align-self: flex-start;
+  margin-left: 4px;
 }
 
 /* ---- correction card ---- */
 .correction {
-  max-width: 78%;
-  background: var(--panel);
+  max-width: 80%;
+  background: var(--warn-soft);
   border: 1px solid var(--border);
   border-left: 3px solid var(--warn);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 11px 13px;
   font-size: 14px;
+  box-shadow: var(--shadow-sm);
 }
 .correction .c-head {
   color: var(--warn);
   font-size: 12px;
-  letter-spacing: 0.03em;
-  margin-bottom: 6px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 7px;
 }
 .correction .c-item + .c-item {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--border-strong);
 }
 .correction .orig {
   color: var(--danger);
   text-decoration: line-through;
-  text-decoration-color: rgba(248, 81, 73, 0.6);
+  text-decoration-color: rgba(192, 73, 47, 0.5);
 }
 .correction .arrow {
   color: var(--muted);
@@ -165,39 +224,15 @@ textarea {
 }
 .correction .explain {
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: 5px;
 }
 .correction.ok {
+  background: var(--good-soft);
   border-left-color: var(--good);
 }
 .correction.ok .c-head {
   color: var(--good);
-}
-
-/* ---- speaker (TTS) button ---- */
-.speaker {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 6px;
-  opacity: 0.75;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-.speaker:hover {
-  opacity: 1;
-  background: var(--panel-2);
-}
-.speaker:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
-.row.assistant .speaker {
-  align-self: flex-start;
-  margin-left: 2px;
+  margin-bottom: 0;
 }
 
 /* ---- composer ---- */
@@ -207,41 +242,57 @@ textarea {
   display: flex;
   gap: 10px;
   align-items: flex-end;
+  background: rgba(255, 253, 249, 0.75);
+  backdrop-filter: blur(8px);
 }
 .composer textarea {
   flex: 1;
   resize: none;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  max-height: 160px;
+  overflow-y: auto;
+  min-height: 44px;
+  max-height: 168px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 11px 14px;
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s;
 }
 .composer textarea:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .composer .send {
   background: var(--accent);
   border: none;
-  border-radius: 12px;
-  padding: 10px 18px;
+  border-radius: 14px;
+  padding: 0 20px;
+  height: 44px;
   cursor: pointer;
   font-weight: 600;
-  color: white;
+  color: var(--user-text);
+  transition: background 0.15s;
+}
+.composer .send:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 .composer .send:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 .composer .mic {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
   font-size: 17px;
   line-height: 1;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, background 0.15s;
 }
 .composer .mic:hover {
   border-color: var(--accent);
@@ -251,22 +302,22 @@ textarea {
   cursor: default;
 }
 .composer .mic.recording {
-  background: rgba(248, 81, 73, 0.15);
+  background: rgba(192, 73, 47, 0.12);
   border-color: var(--danger);
   animation: pulse 1.2s ease-in-out infinite;
 }
 @keyframes pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.5);
+    box-shadow: 0 0 0 0 rgba(192, 73, 47, 0.45);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(248, 81, 73, 0);
+    box-shadow: 0 0 0 6px rgba(192, 73, 47, 0);
   }
 }
 
 .statusbar {
-  padding: 6px 18px 10px;
+  padding: 7px 18px 11px;
   font-size: 12px;
   color: var(--muted);
   display: flex;
@@ -280,6 +331,19 @@ textarea {
   color: var(--muted);
   font-size: 13px;
   font-style: italic;
+  padding-left: 4px;
+}
+
+/* ---- scrollbar ---- */
+.messages::-webkit-scrollbar,
+.composer textarea::-webkit-scrollbar {
+  width: 9px;
+}
+.messages::-webkit-scrollbar-thumb,
+.composer textarea::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+  border: 2px solid var(--bg);
 }
 
 /* ---- login gate ---- */
@@ -296,19 +360,21 @@ textarea {
   max-width: 340px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 28px 24px;
+  border-radius: 18px;
+  padding: 30px 26px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 13px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 .login-icon {
-  font-size: 32px;
+  font-size: 34px;
 }
 .login-card h1 {
-  font-size: 19px;
+  font-size: 20px;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 .login-sub {
   color: var(--muted);
@@ -317,23 +383,28 @@ textarea {
 }
 .login-card input {
   background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 13px;
-  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  padding: 12px 14px;
+  text-align: center;
 }
 .login-card input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .login-card button {
   background: var(--accent);
   border: none;
-  border-radius: 10px;
-  padding: 11px;
-  color: white;
+  border-radius: 11px;
+  padding: 12px;
+  color: var(--user-text);
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
+}
+.login-card button:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 .login-card button:disabled {
   opacity: 0.5;
