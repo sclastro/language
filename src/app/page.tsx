@@ -41,6 +41,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [gated, setGated] = useState(false); // 有冇開密碼保護(睇可讀 cookie)
 
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +71,13 @@ export default function Home() {
       /* 壞資料就當冇 */
     }
     setHydrated(true);
+    setGated(document.cookie.split("; ").some((c) => c === "et_ui=1"));
   }, []);
+
+  async function logout() {
+    await fetch("/api/logout", { method: "POST" }).catch(() => {});
+    window.location.href = "/login";
+  }
 
   // 存返 localStorage
   useEffect(() => {
@@ -185,6 +192,11 @@ export default function Home() {
           <button className="ghost-btn" onClick={clearAll}>
             清除
           </button>
+          {gated && (
+            <button className="ghost-btn" onClick={logout} title="登出">
+              🔒
+            </button>
+          )}
         </div>
       </header>
 

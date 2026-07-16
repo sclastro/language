@@ -47,7 +47,8 @@ self.addEventListener("fetch", (event) => {
     (async () => {
       try {
         const res = await fetch(request);
-        if (res.ok) {
+        // 唔 cache 轉向(例如未登入被導去 /login),避免污染「/」。
+        if (res.ok && !res.redirected) {
           const cache = await caches.open(CACHE);
           cache.put(request, res.clone());
         }
