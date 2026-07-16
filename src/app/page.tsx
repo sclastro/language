@@ -44,6 +44,15 @@ export default function Home() {
   const [gated, setGated] = useState(false); // 有冇開密碼保護(睇可讀 cookie)
 
   const messagesRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // 輸入框自動長高(最多 ~7 行),打幾行都睇到。
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 168) + "px";
+  }, [input]);
 
   const {
     recording,
@@ -242,6 +251,7 @@ export default function Home() {
           </button>
         )}
         <textarea
+          ref={taRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
