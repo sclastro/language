@@ -44,10 +44,11 @@ function parseTutorResponse(raw: string): TutorResponse {
               explanation: typeof c.explanation === "string" ? c.explanation : "",
             }))
         : [],
+      rewrite: typeof obj.rewrite === "string" ? obj.rewrite : "",
     };
   } catch {
     // 完全 parse 唔到就當佢淨係回覆,冇糾正,唔好白屏。
-    return { reply: raw.trim(), corrections: [] };
+    return { reply: raw.trim(), corrections: [], rewrite: "" };
   }
 }
 
