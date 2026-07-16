@@ -28,10 +28,11 @@ let client: OpenAI | null = null;
 
 /** Lazy 初始化,避免 build 時(未有 key)就爆錯。 */
 export function getPoeClient(): OpenAI {
-  const apiKey = process.env.POE_API_KEY;
+  // 支援 QM_POE9_KEY(用戶喺 Vercel 用嘅名),亦保留 POE_API_KEY 做後備。
+  const apiKey = process.env.QM_POE9_KEY || process.env.POE_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "未設定 POE_API_KEY。請將 .env.local.example 複製做 .env.local 並填入你嘅 Poe key。"
+      "未設定 QM_POE9_KEY(或 POE_API_KEY)。請喺環境變數填入你嘅 Poe key。"
     );
   }
   if (!client) {

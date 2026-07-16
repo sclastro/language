@@ -17,7 +17,7 @@
    ```bash
    cp .env.local.example .env.local
    ```
-   跟住去 <https://poe.com/api_key> 產生一個**新** key,填入 `POE_API_KEY`。
+   跟住去 <https://poe.com/api_key> 產生一個**新** key,填入 `QM_POE9_KEY`(`POE_API_KEY` 都仍然 work)。
    > ⚠️ 之前貼過出街嘅 key 當已洩漏,請重新產生。
 
 3. 開發模式:
