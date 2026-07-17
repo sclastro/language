@@ -1,5 +1,6 @@
 import type { Correction } from "@/lib/types";
 import SpeakerButton from "./SpeakerButton";
+import SaveButton from "./SaveButton";
 
 export default function CorrectionCard({
   corrections,
@@ -32,6 +33,7 @@ export default function CorrectionCard({
             <span className="arrow">→</span>
             <span className="fixed">{c.corrected}</span>
             <SpeakerButton text={c.corrected} title="讀出正確版本" />
+            <SaveButton text={c.corrected} kind="correction" />
           </div>
           {c.explanation && <div className="explain">{c.explanation}</div>}
         </div>
@@ -43,6 +45,7 @@ export default function CorrectionCard({
           <div className="rewrite-body">
             <span className="rewrite-text">{rewrite}</span>
             <SpeakerButton text={rewrite!} title="讀出完整正確版本" />
+            <SaveButton text={rewrite!} kind="rewrite" />
           </div>
         </div>
       )}
