@@ -41,5 +41,13 @@ export async function middleware(req: NextRequest) {
 
 // 只保護頁面同貴嘅 API;登入/登出 API、靜態資源、PWA icon 唔喺度。
 export const config = {
-  matcher: ["/", "/login", "/api/chat", "/api/tts", "/api/stt"],
+  matcher: [
+    "/",
+    "/login",
+    "/saved",
+    "/api/chat",
+    "/api/tts",
+    "/api/stt",
+    "/api/export",
+  ],
 };

@@ -1,9 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-
-// 用文字做 key cache 音訊 URL,再撳同一句就唔使再生成(慳 points)。
-const urlCache = new Map<string, string>();
+import { fetchTtsUrl } from "@/lib/tts";
 
 type State = "idle" | "loading" | "playing" | "error";
 
@@ -29,20 +27,8 @@ export default function SpeakerButton({
     }
 
     try {
-      let url = urlCache.get(text);
-      if (!url) {
-        setState("loading");
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        const data = (await res.json()) as { url?: string; error?: string };
-        if (!res.ok || !data.url) throw new Error(data.error || "TTS failed");
-        url = data.url;
-        urlCache.set(text, url);
-      }
-
+      setState("loading");
+      const url = await fetchTtsUrl(text);
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => setState("idle");

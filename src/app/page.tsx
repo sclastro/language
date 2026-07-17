@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import CorrectionCard from "@/components/CorrectionCard";
 import SpeakerButton from "@/components/SpeakerButton";
+import SaveButton from "@/components/SaveButton";
 import { useRecorder } from "@/hooks/useRecorder";
+import { useSaved } from "@/lib/savedStore";
 import type {
   ChatApiResponse,
   ChatMessage,
@@ -58,6 +61,8 @@ export default function Home() {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 168) + "px";
   }, [input]);
+
+  const { items: savedItems } = useSaved();
 
   const {
     recording,
@@ -207,6 +212,9 @@ export default function Home() {
               </option>
             ))}
           </select>
+          <Link className="ghost-btn" href="/saved" title="我的收藏">
+            ★ 收藏{savedItems.length > 0 ? ` (${savedItems.length})` : ""}
+          </Link>
           <button className="ghost-btn" onClick={clearAll}>
             清除
           </button>
@@ -242,7 +250,10 @@ export default function Home() {
           ) : (
             <div key={i} className="row assistant">
               <div className="bubble">{it.content}</div>
-              <SpeakerButton text={it.content} title="讀出 AI 回覆" />
+              <div className="bubble-actions">
+                <SpeakerButton text={it.content} title="讀出 AI 回覆" />
+                <SaveButton text={it.content} kind="reply" />
+              </div>
             </div>
           )
         )}
