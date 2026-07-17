@@ -7,6 +7,8 @@ import { fetchTtsUrl, getCachedTtsUrl } from "@/lib/tts";
 import {
   useSaved,
   removeSaved,
+  exportSavedJson,
+  importSavedItems,
   type SavedItem,
   type SavedKind,
 } from "@/lib/savedStore";
@@ -33,9 +35,39 @@ export default function SavedPage() {
   const [playing, setPlaying] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   const stopRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  function backupJson() {
+    const blob = new Blob([exportSavedJson()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `收藏備份-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importBackup(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setNote(null);
+    try {
+      const data = JSON.parse(await file.text());
+      const arr = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
+      const n = importSavedItems(arr);
+      setNote(n > 0 ? `匯入咗 ${n} 句新收藏` : "冇新收藏可以匯入(已存在)");
+    } catch {
+      setError("匯入失敗:檔案格式唔啱");
+    }
+  }
 
   const allSelected = items.length > 0 && selected.size === items.length;
   const selectedItems = items.filter((i) => selected.has(i.id));
@@ -123,11 +155,34 @@ export default function SavedPage() {
       <header className="header">
         <h1>★ 我的收藏</h1>
         <div className="controls">
+          <button className="ghost-btn" onClick={backupJson} title="匯出備份檔">
+            ⬇ 備份
+          </button>
+          <button
+            className="ghost-btn"
+            onClick={() => fileRef.current?.click()}
+            title="由備份檔匯入"
+          >
+            ⬆ 匯入
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={importBackup}
+          />
           <Link className="ghost-btn" href="/">
             ← 返回
           </Link>
         </div>
       </header>
+
+      {(note || error) && (
+        <div className={`statusbar ${error ? "error" : ""}`}>
+          {error ? `⚠️ ${error}` : `✓ ${note}`}
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="messages">
@@ -167,8 +222,6 @@ export default function SavedPage() {
               </button>
             </div>
           </div>
-
-          {error && <div className="statusbar error">⚠️ {error}</div>}
 
           <div className="messages saved-list">
             {items.map((it) => (

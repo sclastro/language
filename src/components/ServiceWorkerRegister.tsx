@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
+import { requestPersistentStorage } from "@/lib/savedStore";
 
-/** 喺 client 端註冊 service worker,令個 app 可以「安裝」做 PWA。 */
+/** 喺 client 端做初始化:註冊 service worker + 申請持久儲存。 */
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // 申請「持久儲存」,減低收藏被瀏覽器自動清走嘅機會。
+    requestPersistentStorage();
+
     if (!("serviceWorker" in navigator)) return;
     // 只喺 production 註冊,避免開發時 cache 阻手。
     if (process.env.NODE_ENV !== "production") return;
