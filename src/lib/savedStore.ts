@@ -84,6 +84,57 @@ export function toggleSavedByText(text: string, kind: SavedKind) {
   else addSaved(t, kind);
 }
 
+/** 匯出成 JSON 字串(俾用戶備份落手機)。 */
+export function exportSavedJson(): string {
+  load();
+  return JSON.stringify({ version: 1, exportedAt: Date.now(), items }, null, 2);
+}
+
+/** 由備份匯入,按文字去重合併;回傳實際新增咗幾多句。 */
+export function importSavedItems(incoming: unknown): number {
+  load();
+  const arr = Array.isArray(incoming) ? incoming : [];
+  const seen = new Set(items.map((i) => i.text));
+  const merged = [...items];
+  let added = 0;
+  for (const raw of arr) {
+    const it = raw as Partial<SavedItem>;
+    if (!it || typeof it.text !== "string") continue;
+    const t = it.text.trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    const kind: SavedKind =
+      it.kind === "correction" || it.kind === "rewrite" || it.kind === "reply"
+        ? it.kind
+        : "reply";
+    merged.push({
+      id: newId(),
+      text: t,
+      kind,
+      savedAt: typeof it.savedAt === "number" ? it.savedAt : Date.now(),
+    });
+    added++;
+  }
+  if (added > 0) {
+    merged.sort((a, b) => b.savedAt - a.savedAt);
+    items = merged;
+    persist();
+    emit();
+  }
+  return added;
+}
+
+/** 叫瀏覽器將本站儲存設為「持久」,減低被自動清走嘅機會。 */
+export async function requestPersistentStorage() {
+  try {
+    if (typeof navigator !== "undefined" && navigator.storage?.persist) {
+      await navigator.storage.persist();
+    }
+  } catch {
+    /* 唔支援就算 */
+  }
+}
+
 /** React hook:訂閱收藏清單(跨組件即時更新)。 */
 export function useSaved() {
   load();
