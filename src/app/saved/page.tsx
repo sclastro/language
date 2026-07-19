@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SpeakerButton from "@/components/SpeakerButton";
-import { fetchTtsUrl, getCachedTtsUrl } from "@/lib/tts";
+import { fetchTtsUrl, getCachedCdnUrl } from "@/lib/tts";
 import {
   useSaved,
   removeSaved,
   exportSavedJson,
   importSavedItems,
+  getAllSaved,
+  mergeSaved,
+  replaceAll,
   type SavedItem,
   type SavedKind,
 } from "@/lib/savedStore";
@@ -17,6 +20,7 @@ const KIND_LABEL: Record<SavedKind, string> = {
   correction: "更正",
   rewrite: "完整句",
   reply: "AI 回應",
+  vocab: "生字",
 };
 
 function fmt(ts: number): string {
@@ -37,9 +41,47 @@ export default function SavedPage() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
+  const [syncState, setSyncState] = useState<"off" | "idle" | "syncing">("off");
+
   const stopRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  // 雲端同步(有設定先啟用):載入時 pull → merge → push。
+  async function doSync(showNote: boolean) {
+    setSyncState("syncing");
+    try {
+      const res = await fetch("/api/sync");
+      const data = (await res.json()) as {
+        configured?: boolean;
+        items?: SavedItem[];
+        error?: string;
+      };
+      if (!data.configured) {
+        setSyncState("off");
+        return;
+      }
+      if (data.error) throw new Error(data.error);
+      const merged = mergeSaved(getAllSaved(), data.items ?? []);
+      replaceAll(merged);
+      const push = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: merged }),
+      });
+      if (!push.ok) throw new Error("上傳雲端失敗");
+      setSyncState("idle");
+      if (showNote) setNote(`☁ 已同步(共 ${merged.length} 項)`);
+    } catch (e) {
+      setSyncState("idle");
+      setError(e instanceof Error ? e.message : "同步失敗");
+    }
+  }
+
+  useEffect(() => {
+    doSync(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function backupJson() {
     const blob = new Blob([exportSavedJson()], { type: "application/json" });
@@ -120,10 +162,12 @@ export default function SavedPage() {
     setError(null);
     try {
       const payload = {
-        items: selectedItems.map((i) => ({
-          text: i.text,
-          url: getCachedTtsUrl(i.text),
-        })),
+        items: await Promise.all(
+          selectedItems.map(async (i) => ({
+            text: i.text,
+            url: await getCachedCdnUrl(i.text),
+          }))
+        ),
       };
       const res = await fetch("/api/export", {
         method: "POST",
@@ -155,6 +199,19 @@ export default function SavedPage() {
       <header className="header">
         <h1>★ 我的收藏</h1>
         <div className="controls">
+          {syncState !== "off" && (
+            <button
+              className="ghost-btn"
+              onClick={() => doSync(true)}
+              disabled={syncState === "syncing"}
+              title="同雲端同步"
+            >
+              {syncState === "syncing" ? "☁ 同步緊…" : "☁ 同步"}
+            </button>
+          )}
+          <Link className="ghost-btn" href="/review" title="今日複習">
+            📅 複習
+          </Link>
           <button className="ghost-btn" onClick={backupJson} title="匯出備份檔">
             ⬇ 備份
           </button>
@@ -233,6 +290,12 @@ export default function SavedPage() {
                 />
                 <div className="saved-main">
                   <div className="saved-text">{it.text}</div>
+                  {it.kind === "vocab" && it.meaning && (
+                    <div className="saved-vocab-meaning">
+                      {it.meaning}
+                      {it.example ? ` — ${it.example}` : ""}
+                    </div>
+                  )}
                   <div className="saved-meta">
                     <span className={`chip chip-${it.kind}`}>
                       {KIND_LABEL[it.kind]}

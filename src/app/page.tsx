@@ -5,27 +5,30 @@ import Link from "next/link";
 import CorrectionCard from "@/components/CorrectionCard";
 import SpeakerButton from "@/components/SpeakerButton";
 import SaveButton from "@/components/SaveButton";
+import VocabSheet, {
+  TappableText,
+  lookupWord,
+  type LookupState,
+} from "@/components/VocabSheet";
 import { useRecorder } from "@/hooks/useRecorder";
-import { useSaved } from "@/lib/savedStore";
-import type {
-  ChatApiResponse,
-  ChatMessage,
-  Correction,
-  Level,
-} from "@/lib/types";
+import { useSaved, dueItems } from "@/lib/savedStore";
+import { addUsage, useUsage } from "@/lib/usage";
+import {
+  useConvos,
+  getActive,
+  setActive,
+  newConvo,
+  deleteConvo,
+  setScenario,
+  updateActiveItems,
+  type UserItem,
+  type ChatItem,
+} from "@/lib/convoStore";
+import { SCENARIOS, type ScenarioId } from "@/lib/scenarios";
+import type { ChatMessage, Correction, Level } from "@/lib/types";
 import { AVAILABLE_MODELS, CLIENT_DEFAULT_MODEL } from "@/lib/models";
 
-/** 一格對話:用戶嗰句會夾埋 AI 俾嘅糾正。 */
-type UserItem = {
-  kind: "user";
-  content: string;
-  corrections?: Correction[];
-  rewrite?: string;
-};
-type AssistantItem = { kind: "assistant"; content: string };
-type Item = UserItem | AssistantItem;
-
-const STORAGE_KEY = "english-tutor-state-v1";
+const SETTINGS_KEY = "english-tutor-settings-v1";
 
 const LEVELS: { value: Level; label: string }[] = [
   { value: "beginner", label: "初級" },
@@ -33,36 +36,46 @@ const LEVELS: { value: Level; label: string }[] = [
   { value: "advanced", label: "高級" },
 ];
 
-type SavedState = {
-  items: Item[];
-  level: Level;
-  model: string;
-  totalTokens: number;
-};
+type StreamEvent =
+  | { t: "r"; reply: string }
+  | {
+      t: "f";
+      reply: string;
+      corrections: Correction[];
+      rewrite: string;
+      usage?: { totalTokens: number };
+    }
+  | { t: "e"; error: string };
 
 export default function Home() {
-  const [items, setItems] = useState<Item[]>([]);
+  const convosState = useConvos();
+  const active = convosState.convos.find((c) => c.id === convosState.activeId);
+  const items: ChatItem[] = active?.items ?? [];
+
   const [level, setLevel] = useState<Level>("intermediate");
   const [model, setModel] = useState<string>(CLIENT_DEFAULT_MODEL);
-  const [totalTokens, setTotalTokens] = useState(0);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [gated, setGated] = useState(false); // 有冇開密碼保護(睇可讀 cookie)
+  const [gated, setGated] = useState(false);
+  const [lookup, setLookup] = useState<LookupState | null>(null);
+  const [dueCount, setDueCount] = useState(0);
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
-  // 輸入框自動長高(最多 ~7 行),打幾行都睇到。
+  const { items: savedItems } = useSaved();
+  const usage = useUsage();
+
+  // 輸入框自動長高(最多 ~7 行)
   useEffect(() => {
     const el = taRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 168) + "px";
   }, [input]);
-
-  const { items: savedItems } = useSaved();
 
   const {
     recording,
@@ -75,44 +88,60 @@ export default function Home() {
     onError: (m) => setError(m),
   });
 
-  // 由 localStorage 還原
+  // 還原設定 + gate 狀態 + 今日複習數
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) {
-        const s = JSON.parse(raw) as SavedState;
-        if (Array.isArray(s.items)) setItems(s.items);
+        const s = JSON.parse(raw) as { level?: Level; model?: string };
         if (s.level) setLevel(s.level);
         if (s.model) setModel(s.model);
-        if (typeof s.totalTokens === "number") setTotalTokens(s.totalTokens);
       }
     } catch {
-      /* 壞資料就當冇 */
+      /* ignore */
     }
     setHydrated(true);
     setGated(document.cookie.split("; ").some((c) => c === "et_ui=1"));
+    setDueCount(dueItems().length);
   }, []);
+
+  useEffect(() => {
+    setDueCount(dueItems().length);
+  }, [savedItems]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ level, model }));
+    } catch {
+      /* ignore */
+    }
+  }, [level, model, hydrated]);
+
+  // 自動捲到底
+  useEffect(() => {
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight });
+  }, [items, loading, streamText]);
 
   async function logout() {
     await fetch("/api/logout", { method: "POST" }).catch(() => {});
     window.location.href = "/login";
   }
 
-  // 存返 localStorage
-  useEffect(() => {
-    if (!hydrated) return;
-    const s: SavedState = { items, level, model, totalTokens };
+  async function onWordTap(word: string, sentence: string) {
+    setLookup({ word, sentence, loading: true });
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-    } catch {
-      /* 容量滿就算 */
+      const r = await lookupWord(word, sentence);
+      setLookup({ word, sentence, loading: false, ...r });
+    } catch (e) {
+      setLookup({
+        word,
+        sentence,
+        loading: false,
+        error: e instanceof Error ? e.message : "查詢失敗",
+      });
     }
-  }, [items, level, model, totalTokens, hydrated]);
-
-  // 自動捲到底
-  useEffect(() => {
-    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight });
-  }, [items, loading]);
+  }
 
   async function send() {
     const text = input.trim();
@@ -120,62 +149,96 @@ export default function Home() {
 
     setError(null);
     setInput("");
-
-    // 先樂觀顯示用戶嗰句
-    const nextItems: Item[] = [...items, { kind: "user", content: text }];
-    setItems(nextItems);
+    updateActiveItems((prev) => [...prev, { kind: "user", content: text }]);
     setLoading(true);
+    setStreamText("");
 
-    // 由 items 砌返純對話歷史(唔帶 corrections)
-    const history: ChatMessage[] = nextItems.map((it) => ({
-      role: it.kind,
-      content: it.content,
-    }));
+    const history: ChatMessage[] = [...items, { kind: "user", content: text } as ChatItem].map(
+      (it) => ({ role: it.kind as "user" | "assistant", content: it.content })
+    );
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, level, model }),
+        body: JSON.stringify({
+          messages: history,
+          level,
+          model,
+          scenario: active?.scenario ?? "free",
+        }),
       });
-      const data = (await res.json()) as ChatApiResponse & { error?: string };
 
-      if (!res.ok || data.error) {
-        throw new Error(data.error || `伺服器回覆 ${res.status}`);
+      if (!res.ok || !res.body) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error || `伺服器回覆 ${res.status}`);
       }
 
-      // 將 corrections 貼返最後一句 user,再加 AI 回覆
-      setItems((prev) => {
-        const copy = [...prev];
-        for (let i = copy.length - 1; i >= 0; i--) {
-          if (copy[i].kind === "user") {
-            copy[i] = {
-              ...(copy[i] as UserItem),
-              corrections: data.corrections,
-              rewrite: data.rewrite,
-            };
-            break;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let finished = false;
+
+      while (!finished) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const events = buf.split("\n\n");
+        buf = events.pop() ?? "";
+        for (const ev of events) {
+          const line = ev.trim();
+          if (!line.startsWith("data: ")) continue;
+          let payload: StreamEvent;
+          try {
+            payload = JSON.parse(line.slice(6)) as StreamEvent;
+          } catch {
+            continue;
+          }
+          if (payload.t === "r") {
+            setStreamText(payload.reply);
+          } else if (payload.t === "e") {
+            throw new Error(payload.error);
+          } else if (payload.t === "f") {
+            finished = true;
+            updateActiveItems((prev) => {
+              const copy = [...prev];
+              for (let i = copy.length - 1; i >= 0; i--) {
+                if (copy[i].kind === "user") {
+                  copy[i] = {
+                    ...(copy[i] as UserItem),
+                    corrections: payload.corrections,
+                    rewrite: payload.rewrite,
+                  };
+                  break;
+                }
+              }
+              copy.push({ kind: "assistant", content: payload.reply });
+              return copy;
+            });
+            if (payload.usage?.totalTokens) {
+              addUsage({ tokens: payload.usage.totalTokens });
+            }
           }
         }
-        copy.push({ kind: "assistant", content: data.reply });
-        return copy;
-      });
-
-      if (data.usage) {
-        setTotalTokens((t) => t + data.usage!.totalTokens);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "出咗啲問題,請再試。");
     } finally {
       setLoading(false);
+      setStreamText("");
     }
   }
 
-  function clearAll() {
-    if (!confirm("清除成段對話?")) return;
-    setItems([]);
+  function clearConvo() {
+    if (!confirm("清除呢段對話?")) return;
+    updateActiveItems(() => []);
     setError(null);
-    setTotalTokens(0);
+  }
+
+  function removeConvo() {
+    if (!active) return;
+    if (!confirm(`刪除「${active.title}」?`)) return;
+    deleteConvo(active.id);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -212,12 +275,12 @@ export default function Home() {
               </option>
             ))}
           </select>
+          <Link className="ghost-btn" href="/review" title="今日複習">
+            📅 複習{dueCount > 0 ? ` (${dueCount})` : ""}
+          </Link>
           <Link className="ghost-btn" href="/saved" title="我的收藏">
             ★ 收藏{savedItems.length > 0 ? ` (${savedItems.length})` : ""}
           </Link>
-          <button className="ghost-btn" onClick={clearAll}>
-            清除
-          </button>
           {gated && (
             <button className="ghost-btn" onClick={logout} title="登出">
               🔒
@@ -226,12 +289,52 @@ export default function Home() {
         </div>
       </header>
 
+      <div className="convo-bar">
+        <select
+          className="convo-select"
+          value={active?.id ?? ""}
+          onChange={(e) => setActive(e.target.value)}
+          aria-label="對話"
+        >
+          {convosState.convos.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+        <select
+          value={active?.scenario ?? "free"}
+          onChange={(e) => active && setScenario(active.id, e.target.value as ScenarioId)}
+          aria-label="情境"
+          title="揀情境,AI 會做返嗰個角色同你演練"
+        >
+          {SCENARIOS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.id === "free" ? "💬" : "🎭"} {s.label}
+            </option>
+          ))}
+        </select>
+        <button className="ghost-btn" onClick={() => newConvo(active?.scenario)} title="開新對話">
+          ＋ 新
+        </button>
+        <button className="ghost-btn" onClick={clearConvo} title="清空內容">
+          清除
+        </button>
+        <button className="ghost-btn" onClick={removeConvo} title="刪除呢個對話">
+          🗑
+        </button>
+      </div>
+
       <div className="messages" ref={messagesRef}>
-        {items.length === 0 && (
+        {items.length === 0 && !streamText && (
           <div className="empty">
             用英文打句嘢開始傾偈啦 👋
             <br />
             AI 會自然咁回你,同時幫你捉語法同用詞嘅問題(用中文解釋)。
+            <br />
+            <span className="empty-hint">
+              💡 撳 AI 回覆入面唔識嘅字可以查字典;揀「🎭 情境」可以角色扮演。
+            </span>
           </div>
         )}
 
@@ -249,7 +352,9 @@ export default function Home() {
             </div>
           ) : (
             <div key={i} className="row assistant">
-              <div className="bubble">{it.content}</div>
+              <div className="bubble">
+                <TappableText text={it.content} onWord={onWordTap} />
+              </div>
               <div className="bubble-actions">
                 <SpeakerButton text={it.content} title="讀出 AI 回覆" />
                 <SaveButton text={it.content} kind="reply" />
@@ -258,7 +363,12 @@ export default function Home() {
           )
         )}
 
-        {loading && <div className="typing">AI 諗緊…</div>}
+        {streamText && (
+          <div className="row assistant">
+            <div className="bubble">{streamText}▍</div>
+          </div>
+        )}
+        {loading && !streamText && <div className="typing">AI 諗緊…</div>}
       </div>
 
       {error && <div className="statusbar error">⚠️ {error}</div>}
@@ -297,8 +407,14 @@ export default function Home() {
 
       <div className="statusbar">
         <span>模型:{model}</span>
-        <span>今次 session 約用咗 {totalTokens.toLocaleString()} tokens</span>
+        <span>今日 ~{usage.today.tokens.toLocaleString()} tokens</span>
+        <span>本月 ~{usage.month.tokens.toLocaleString()} tokens</span>
+        <span>
+          🔊 {usage.today.tts} · 🎤 {usage.today.stt} 次(今日)
+        </span>
       </div>
+
+      <VocabSheet lookup={lookup} onClose={() => setLookup(null)} />
     </div>
   );
 }

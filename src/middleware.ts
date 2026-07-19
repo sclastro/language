@@ -45,9 +45,12 @@ export const config = {
     "/",
     "/login",
     "/saved",
+    "/review",
     "/api/chat",
     "/api/tts",
     "/api/stt",
     "/api/export",
+    "/api/vocab",
+    "/api/sync",
   ],
 };
