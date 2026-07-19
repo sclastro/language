@@ -12,9 +12,11 @@ const MAX_CHARS = 600; // 控制成本:太長就截短
  */
 export async function POST(request: Request) {
   let text: string;
+  let raw = false;
   try {
-    const body = (await request.json()) as { text?: string };
+    const body = (await request.json()) as { text?: string; raw?: boolean };
     text = (body.text ?? "").trim().slice(0, MAX_CHARS);
+    raw = body.raw === true;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -34,6 +36,22 @@ export async function POST(request: Request) {
         { error: "TTS 冇回到有效嘅音訊連結。" },
         { status: 502 }
       );
+    }
+    if (raw) {
+      // 直接將音訊 bytes 送返前端(前端會存入 IndexedDB 做本機快取)。
+      const audio = await fetch(url);
+      if (!audio.ok) {
+        return NextResponse.json({ error: "下載音訊失敗。" }, { status: 502 });
+      }
+      const buf = await audio.arrayBuffer();
+      return new NextResponse(buf, {
+        status: 200,
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "x-audio-url": url,
+          "Cache-Control": "no-store",
+        },
+      });
     }
     return NextResponse.json({ url });
   } catch (err) {

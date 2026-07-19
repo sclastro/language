@@ -393,6 +393,230 @@ input {
   border: 2px solid var(--bg);
 }
 
+/* ---- convo bar ---- */
+.convo-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  background: var(--bg-2);
+}
+.convo-bar select {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 5px 8px;
+  font-size: 15px;
+  cursor: pointer;
+  max-width: 40vw;
+}
+.convo-bar .ghost-btn {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 5px 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.convo-bar .ghost-btn:hover {
+  border-color: var(--accent);
+}
+.empty-hint {
+  font-size: 14px;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* ---- tappable words + vocab sheet ---- */
+.wtap {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.12s;
+}
+.wtap:hover {
+  background: var(--accent-soft);
+}
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(50, 40, 25, 0.35);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+}
+.sheet {
+  width: 100%;
+  max-width: 760px;
+  background: var(--panel);
+  border-radius: 20px 20px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(60, 45, 30, 0.15);
+}
+.sheet-word {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.sheet-loading {
+  color: var(--muted);
+}
+.sheet-meaning {
+  margin-bottom: 8px;
+}
+.sheet-example {
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+.sheet-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.sheet-actions .ghost-btn {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+/* ---- review (SRS) ---- */
+.review-wrap {
+  align-items: center;
+  justify-content: flex-start;
+}
+.review-progress {
+  color: var(--muted);
+  font-size: 14px;
+}
+.review-card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow);
+}
+.review-kind {
+  color: var(--muted);
+  font-size: 13px;
+}
+.review-text {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.review-answer {
+  background: var(--good-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.review-example {
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 6px;
+}
+.review-grade {
+  display: flex;
+  gap: 12px;
+}
+.grade-btn {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-weight: 700;
+  font-size: 17px;
+  cursor: pointer;
+  color: #fff;
+}
+.grade-btn.bad {
+  background: var(--danger);
+}
+.grade-btn.good {
+  background: var(--good);
+}
+.grade-btn:hover {
+  filter: brightness(0.94);
+}
+
+/* ---- pronunciation practice ---- */
+.pron {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pron-btn {
+  align-self: flex-start;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 7px 13px;
+  cursor: pointer;
+  font-size: 15px;
+}
+.pron-btn.recording {
+  background: rgba(192, 73, 47, 0.12);
+  border-color: var(--danger);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.pron-err {
+  color: var(--danger);
+  font-size: 14px;
+}
+.pron-result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--bg-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 16px;
+}
+.pron-score {
+  font-weight: 700;
+}
+.pron-score.good {
+  color: var(--good);
+}
+.pron-score.mid {
+  color: var(--warn);
+}
+.pron-score.bad {
+  color: var(--danger);
+}
+.w-ok {
+  color: var(--good);
+}
+.w-miss {
+  color: var(--danger);
+  text-decoration: underline wavy;
+  text-underline-offset: 3px;
+}
+.pron-heard {
+  color: var(--muted);
+  font-size: 13px;
+}
+.saved-vocab-meaning {
+  color: var(--muted);
+  font-size: 15px;
+  margin-top: 3px;
+}
+.chip-vocab {
+  background: #ece7f6;
+  color: #6b4fa0;
+}
+
 /* ---- saved / review page ---- */
 .saved-toolbar {
   display: flex;

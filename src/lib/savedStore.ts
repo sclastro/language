@@ -1,12 +1,16 @@
 import { useSyncExternalStore } from "react";
+import { initialSrs, reviewSrs, isDue, type SrsState } from "./srs";
 
-export type SavedKind = "correction" | "rewrite" | "reply";
+export type SavedKind = "correction" | "rewrite" | "reply" | "vocab";
 
 export type SavedItem = {
   id: string;
   text: string;
   kind: SavedKind;
   savedAt: number; // Date.now()
+  srs?: SrsState; // 間隔重複狀態(冇 = 未複習過,即到期)
+  meaning?: string; // 生字:繁中解釋
+  example?: string; // 生字:例句
 };
 
 const KEY = "english-tutor-saved-v1";
@@ -82,6 +86,75 @@ export function toggleSavedByText(text: string, kind: SavedKind) {
   const t = text.trim();
   if (items.some((i) => i.text === t)) removeSavedByText(t);
   else addSaved(t, kind);
+}
+
+/** 加入生字(附中文解釋 + 例句)。 */
+export function addVocab(word: string, meaning: string, example: string) {
+  load();
+  const t = word.trim();
+  if (!t) return;
+  if (items.some((i) => i.text === t && i.kind === "vocab")) return;
+  items = [
+    { id: newId(), text: t, kind: "vocab", savedAt: Date.now(), meaning, example },
+    ...items,
+  ];
+  persist();
+  emit();
+}
+
+/** 今日到期要複習嘅項目(由最早到期排先)。 */
+export function dueItems(now = Date.now()): SavedItem[] {
+  load();
+  return items
+    .filter((i) => isDue(i.srs, i.savedAt, now))
+    .sort((a, b) => (a.srs?.due ?? a.savedAt) - (b.srs?.due ?? b.savedAt));
+}
+
+/** 複習一項:記得/唔記得 → 更新 SRS 排程。 */
+export function reviewItem(id: string, remembered: boolean) {
+  load();
+  items = items.map((i) =>
+    i.id === id
+      ? { ...i, srs: reviewSrs(i.srs ?? initialSrs(i.savedAt), remembered) }
+      : i
+  );
+  persist();
+  emit();
+}
+
+/** 用喺雲端同步:整份取代(已喺外面 merge 好)。 */
+export function replaceAll(next: SavedItem[]) {
+  load();
+  items = [...next].sort((a, b) => b.savedAt - a.savedAt);
+  persist();
+  emit();
+}
+
+/** 攞成份清單(俾同步用)。 */
+export function getAllSaved(): SavedItem[] {
+  load();
+  return items;
+}
+
+/** 按 text 合併兩份收藏:保留複習進度較深/較新嗰個。 */
+export function mergeSaved(a: SavedItem[], b: SavedItem[]): SavedItem[] {
+  const byText = new Map<string, SavedItem>();
+  for (const it of [...a, ...b]) {
+    if (!it || typeof it.text !== "string") continue;
+    const key = it.text.trim();
+    const prev = byText.get(key);
+    if (!prev) {
+      byText.set(key, it);
+    } else {
+      const pick =
+        (it.srs?.reps ?? 0) > (prev.srs?.reps ?? 0) ||
+        ((it.srs?.reps ?? 0) === (prev.srs?.reps ?? 0) && it.savedAt > prev.savedAt)
+          ? it
+          : prev;
+      byText.set(key, { ...pick, meaning: pick.meaning ?? prev.meaning ?? it.meaning });
+    }
+  }
+  return [...byText.values()].sort((x, y) => y.savedAt - x.savedAt);
 }
 
 /** 匯出成 JSON 字串(俾用戶備份落手機)。 */

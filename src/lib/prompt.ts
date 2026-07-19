@@ -1,4 +1,5 @@
 import type { Level } from "./types";
+import { scenarioBrief } from "./scenarios";
 
 const LEVEL_GUIDE: Record<Level, string> = {
   beginner:
@@ -16,11 +17,13 @@ const LEVEL_GUIDE: Record<Level, string> = {
  *  3. 只回 JSON,方便前端 render。
  * 特意寫得精簡去慳 token。
  */
-export function buildSystemPrompt(level: Level): string {
+export function buildSystemPrompt(level: Level, scenario?: string): string {
+  const brief = scenarioBrief(scenario);
   return [
     "You are a friendly English conversation partner and tutor.",
     "The learner is a native Chinese (Cantonese) speaker practising English.",
     LEVEL_GUIDE[level],
+    ...(brief ? ["", "ROLE-PLAY SCENARIO: " + brief] : []),
     "",
     "Your job each turn, returned as three separate fields:",
     "1. `reply`: ONLY your natural English conversational response. Be warm and ask a follow-up question.",

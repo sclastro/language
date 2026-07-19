@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { addUsage } from "@/lib/usage";
 
 function pickMimeType(): string {
   if (typeof MediaRecorder === "undefined") return "";
@@ -75,6 +76,7 @@ export function useRecorder({ onResult, onError }: Options) {
           });
           const data = (await res.json()) as { text?: string; error?: string };
           if (!res.ok) throw new Error(data.error || "轉錄失敗");
+          addUsage({ stt: 1 });
           if (data.text) onResult(data.text);
           else onError?.("聽唔到內容,再試一次。");
         } catch (e) {
