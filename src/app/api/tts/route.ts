@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPoeClient, DEFAULT_TTS_MODEL } from "@/lib/poe";
+import { getPoeClient, DEFAULT_TTS_MODEL, friendlyError } from "@/lib/poe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel:俾語音生成多啲時間 headroom
@@ -55,11 +55,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ url });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "TTS 出錯。";
-    const status =
-      typeof (err as { status?: number }).status === "number"
-        ? (err as { status: number }).status
-        : 500;
+    const { message, status } = friendlyError(err);
     return NextResponse.json({ error: message }, { status });
   }
 }

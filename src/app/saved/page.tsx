@@ -11,6 +11,8 @@ import {
   importSavedItems,
   getAllSaved,
   mergeSaved,
+  mergeTombstones,
+  getTombstones,
   replaceAll,
   type SavedItem,
   type SavedKind,
@@ -55,6 +57,7 @@ export default function SavedPage() {
       const data = (await res.json()) as {
         configured?: boolean;
         items?: SavedItem[];
+        tombstones?: Record<string, number>;
         error?: string;
       };
       if (!data.configured) {
@@ -62,12 +65,15 @@ export default function SavedPage() {
         return;
       }
       if (data.error) throw new Error(data.error);
-      const merged = mergeSaved(getAllSaved(), data.items ?? []);
+      // 先併埋兩邊嘅刪除記錄,再 merge —— 咁本機刪咗嘅嘢唔會由雲端翻生。
+      mergeTombstones(data.tombstones);
+      const tombs = getTombstones();
+      const merged = mergeSaved(getAllSaved(), data.items ?? [], tombs);
       replaceAll(merged);
       const push = await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: merged }),
+        body: JSON.stringify({ items: merged, tombstones: tombs }),
       });
       if (!push.ok) throw new Error("上傳雲端失敗");
       setSyncState("idle");
@@ -104,6 +110,7 @@ export default function SavedPage() {
     try {
       const data = JSON.parse(await file.text());
       const arr = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
+      if (!Array.isArray(data) && data?.tombstones) mergeTombstones(data.tombstones);
       const n = importSavedItems(arr);
       setNote(n > 0 ? `匯入咗 ${n} 句新收藏` : "冇新收藏可以匯入(已存在)");
     } catch {
@@ -178,6 +185,9 @@ export default function SavedPage() {
         const e = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(e.error || `匯出失敗 (${res.status})`);
       }
+      const included = Number(res.headers.get("x-included") ?? 0);
+      const missing = Number(res.headers.get("x-missing") ?? 0);
+      const timedOut = res.headers.get("x-timed-out") === "true";
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -187,6 +197,15 @@ export default function SavedPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      if (missing > 0) {
+        setError(
+          `⚠️ 個 MP3 只有 ${included} 句,有 ${missing} 句做唔切${
+            timedOut ? "(時間唔夠)" : ""
+          }。可以分批揀少幾句再匯出。`
+        );
+      } else {
+        setNote(`已下載 MP3(${included} 句)`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "匯出失敗");
     } finally {
@@ -287,6 +306,7 @@ export default function SavedPage() {
                   type="checkbox"
                   checked={selected.has(it.id)}
                   onChange={() => toggle(it.id)}
+                  aria-label={`揀「${it.text.slice(0, 30)}」`}
                 />
                 <div className="saved-main">
                   <div className="saved-text">{it.text}</div>

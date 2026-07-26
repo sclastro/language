@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SpeakerButton from "./SpeakerButton";
 import { addVocab, useSaved } from "@/lib/savedStore";
 import { addUsage } from "@/lib/usage";
@@ -48,6 +48,17 @@ export default function VocabSheet({
 }) {
   const { items } = useSaved();
   const [added, setAdded] = useState(false);
+
+  // 撳 Esc 閂咗佢(鍵盤用戶同埋手機外接鍵盤都用得)。
+  useEffect(() => {
+    if (!lookup) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lookup, onClose]);
+
   if (!lookup) return null;
 
   const already =
@@ -55,7 +66,13 @@ export default function VocabSheet({
 
   return (
     <div className="sheet-mask" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`生字:${lookup.word}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sheet-word">
           {lookup.word}
           <SpeakerButton text={lookup.word} title="讀出生字" />

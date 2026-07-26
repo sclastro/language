@@ -10,6 +10,29 @@ import { addUsage } from "./usage";
 const memUrl = new Map<string, string>(); // text -> object URL
 const memCdn = new Map<string, string>(); // text -> poecdn URL(匯出用)
 
+/**
+ * 全 app 得一個「正在播放」嘅音訊 —— 撳第二個喇叭會停低前一個,
+ * 唔會兩句聲疊住一齊播。
+ */
+let currentAudio: HTMLAudioElement | null = null;
+
+export function playExclusive(audio: HTMLAudioElement) {
+  if (currentAudio && currentAudio !== audio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  currentAudio = audio;
+  return audio.play();
+}
+
+export function stopCurrent() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+}
+
 export function getCachedTtsUrl(text: string): string | undefined {
   return memCdn.get(text.trim());
 }

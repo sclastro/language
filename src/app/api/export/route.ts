@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
-import { getPoeClient, DEFAULT_TTS_MODEL } from "@/lib/poe";
+import { getPoeClient, DEFAULT_TTS_MODEL, friendlyError } from "@/lib/poe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_ITEMS = 60;
+/**
+ * 未快取嘅句子要即場生成語音(每句約 3–10 秒),但 serverless 只有 60 秒。
+ * 所以:① 限制句數 ② 併發生成 ③ 留安全時間,夠鐘就唔再開新嘅,
+ *       ④ 唔好靜靜跳過失敗嘅句子,要話返俾用戶知。
+ */
+const MAX_ITEMS = 30;
+const CONCURRENCY = 4;
+const TIME_BUDGET_MS = 45_000;
 
 type InItem = { text?: string; url?: string };
 
@@ -68,16 +75,36 @@ export async function POST(request: Request) {
 
   try {
     const client = getPoeClient();
-    const parts: Buffer[] = [];
-    // 逐句處理(順序),保持播放次序同你揀嘅一樣。
-    for (const item of items) {
-      const buf = await itemToMp3(item, client);
-      if (buf) parts.push(buf);
+    const started = Date.now();
+    const results = new Array<Buffer | null>(items.length).fill(null);
+    let timedOut = false;
+
+    // 併發處理(保持原本次序:各自寫返自己個 index),夠鐘就停手。
+    let cursor = 0;
+    async function worker() {
+      for (;;) {
+        const i = cursor++;
+        if (i >= items.length) return;
+        if (Date.now() - started > TIME_BUDGET_MS) {
+          timedOut = true;
+          return;
+        }
+        results[i] = await itemToMp3(items[i], client);
+      }
     }
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker)
+    );
+
+    const parts = results.filter((b): b is Buffer => b !== null);
     if (parts.length === 0) {
-      return NextResponse.json({ error: "生成音訊失敗。" }, { status: 502 });
+      return NextResponse.json(
+        { error: "生成音訊失敗,一句都做唔到。請試少幾句。" },
+        { status: 502 }
+      );
     }
 
+    const missing = items.length - parts.length;
     const merged = Buffer.concat(parts);
     return new NextResponse(new Uint8Array(merged), {
       status: 200,
@@ -85,14 +112,14 @@ export async function POST(request: Request) {
         "Content-Type": "audio/mpeg",
         "Content-Disposition": `attachment; filename="review-${Date.now()}.mp3"`,
         "Cache-Control": "no-store",
+        // 前端睇呢兩個 header 就知有冇漏,唔會靜靜收貨。
+        "x-included": String(parts.length),
+        "x-missing": String(missing),
+        "x-timed-out": String(timedOut),
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "匯出出錯。";
-    const status =
-      typeof (err as { status?: number }).status === "number"
-        ? (err as { status: number }).status
-        : 500;
+    const { message, status } = friendlyError(err);
     return NextResponse.json({ error: message }, { status });
   }
 }

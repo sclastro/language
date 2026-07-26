@@ -40,3 +40,35 @@ export function getPoeClient(): OpenAI {
   }
   return client;
 }
+
+/**
+ * 將 Poe/OpenAI SDK 拋出嘅原始英文錯誤,轉成用戶睇得明嘅中文。
+ * 回 { message, status },直接可以放入 NextResponse.json。
+ */
+export function friendlyError(err: unknown): { message: string; status: number } {
+  const status =
+    typeof (err as { status?: number })?.status === "number"
+      ? (err as { status: number }).status
+      : 500;
+  const raw = err instanceof Error ? err.message : String(err);
+
+  if (status === 401 || /invalid_api_key|Incorrect API key/i.test(raw)) {
+    return {
+      message: "Poe API key 唔正確或者已經作廢。請喺 Vercel 更新 QM_POE9_KEY 再重新部署。",
+      status: 401,
+    };
+  }
+  if (status === 429 || /rate limit/i.test(raw)) {
+    return { message: "太密集喇,請等一陣再試(Poe 限速)。", status: 429 };
+  }
+  if (/insufficient|points|quota|billing/i.test(raw)) {
+    return { message: "Poe points 唔夠用喇,請睇下你嘅額度。", status: 402 };
+  }
+  if (/not found/i.test(raw) && /model/i.test(raw)) {
+    return { message: "揀咗嘅模型喺 Poe API 度搵唔到,請換另一個。", status: 404 };
+  }
+  if (status === 408 || /timeout|ETIMEDOUT|aborted/i.test(raw)) {
+    return { message: "等太耐 timeout 咗,請再試一次。", status: 504 };
+  }
+  return { message: raw || "出咗啲問題,請再試。", status };
+}

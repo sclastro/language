@@ -26,20 +26,14 @@ export default function ReviewPage() {
     reviewItem(current.id, remembered);
     setDone((d) => d + 1);
     setRevealed(false);
-    if (!remembered) {
-      // 唔記得:移去隊尾,今次 session 再出一次
-      setQueue((q) => {
-        const copy = [...q];
-        const [item] = copy.splice(idx, 1);
-        copy.push(item);
-        return copy;
-      });
-      // idx 不變(下一張已補上)。如果已經係最尾,回到頭。
-      setIdx((i) => (i >= queue.length - 1 ? 0 : i));
-    } else {
-      setQueue((q) => q.filter((_, i) => i !== idx));
-      setIdx((i) => (i >= queue.length - 2 ? 0 : i));
-    }
+    // 由現時嘅 queue 一次過計好「新隊列」同「下一張嘅位置」,避免兩次 setState 各自用
+    // 唔同步嘅長度去計位(舊做法會早一格跳返頭,打亂溫習次序)。
+    const next = [...queue];
+    const [item] = next.splice(idx, 1);
+    if (!remembered) next.push(item); // 唔記得:擺返隊尾,今次 session 再出一次
+    setQueue(next);
+    // 抽走之後,同一個 idx 已經係下一張;去到尾就返轉頭。
+    setIdx(idx >= next.length ? 0 : idx);
   }
 
   const isVocab = current?.kind === "vocab";

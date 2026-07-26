@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { getPoeClient, DEFAULT_STT_MODEL } from "@/lib/poe";
+import { getPoeClient, DEFAULT_STT_MODEL, friendlyError } from "@/lib/poe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel:俾轉錄多啲時間 headroom
 
-// 限制音訊大小(base64 字元數)。~8MB base64 ≈ 6MB 原始,足夠一段口說。
-const MAX_DATA_URL_LEN = 8_000_000;
+// 限制音訊大小(base64 字元數)。Vercel serverless 嘅 request body 上限係 4.5MB,
+// 所以我哋要對齊佢(留少少 header 空間),唔好等平台先擋 —— 咁用戶至少見到人話錯誤。
+const MAX_DATA_URL_LEN = 4_200_000;
 
 /**
  * STT:收前端錄音(base64 data URL),交俾 Poe 嘅 whisper 轉做文字。
@@ -61,11 +62,7 @@ export async function POST(request: Request) {
     const text = completion.choices[0]?.message?.content?.trim() ?? "";
     return NextResponse.json({ text });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "STT 出錯。";
-    const status =
-      typeof (err as { status?: number }).status === "number"
-        ? (err as { status: number }).status
-        : 500;
+    const { message, status } = friendlyError(err);
     return NextResponse.json({ error: message }, { status });
   }
 }

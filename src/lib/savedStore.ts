@@ -14,11 +14,21 @@ export type SavedItem = {
 };
 
 const KEY = "english-tutor-saved-v1";
+const TOMB_KEY = "english-tutor-deleted-v1";
+
+/** 刪除記錄(tombstone):text → 刪除時間。冇佢嘅話同步會將刪咗嘅嘢拉返落嚟。 */
+export type Tombstones = Record<string, number>;
 
 let items: SavedItem[] = [];
+let tombstones: Tombstones = {};
 let loaded = false;
 const listeners = new Set<() => void>();
 const serverSnapshot: SavedItem[] = [];
+
+/** 同一句可以喺唔同類別各存一份(例如「更正」同「生字」);同類別先當重複。 */
+function dedupKey(text: string, kind: SavedKind): string {
+  return `${kind} ${text.trim()}`;
+}
 
 function load() {
   if (loaded) return;
@@ -27,6 +37,8 @@ function load() {
     if (typeof localStorage !== "undefined") {
       const raw = localStorage.getItem(KEY);
       if (raw) items = JSON.parse(raw) as SavedItem[];
+      const tomb = localStorage.getItem(TOMB_KEY);
+      if (tomb) tombstones = JSON.parse(tomb) as Tombstones;
     }
   } catch {
     /* 壞資料就當空 */
@@ -36,6 +48,7 @@ function load() {
 function persist() {
   try {
     localStorage.setItem(KEY, JSON.stringify(items));
+    localStorage.setItem(TOMB_KEY, JSON.stringify(tombstones));
   } catch {
     /* 容量滿就算 */
   }
@@ -62,30 +75,40 @@ export function addSaved(text: string, kind: SavedKind) {
   load();
   const t = text.trim();
   if (!t) return;
-  if (items.some((i) => i.text === t)) return; // 去重
+  const key = dedupKey(t, kind);
+  if (items.some((i) => dedupKey(i.text, i.kind) === key)) return; // 同類別去重
+  delete tombstones[key]; // 重新收藏 → 取消刪除記錄
   items = [{ id: newId(), text: t, kind, savedAt: Date.now() }, ...items];
   persist();
   emit();
 }
 
 export function removeSaved(id: string) {
+  load();
+  const gone = items.find((i) => i.id === id);
+  if (gone) tombstones[dedupKey(gone.text, gone.kind)] = Date.now();
   items = items.filter((i) => i.id !== id);
   persist();
   emit();
 }
 
-export function removeSavedByText(text: string) {
+export function removeSavedByText(text: string, kind?: SavedKind) {
+  load();
   const t = text.trim();
-  items = items.filter((i) => i.text !== t);
+  const match = (i: SavedItem) => i.text === t && (kind === undefined || i.kind === kind);
+  for (const i of items.filter(match)) {
+    tombstones[dedupKey(i.text, i.kind)] = Date.now();
+  }
+  items = items.filter((i) => !match(i));
   persist();
   emit();
 }
 
 export function toggleSavedByText(text: string, kind: SavedKind) {
   load();
-  const t = text.trim();
-  if (items.some((i) => i.text === t)) removeSavedByText(t);
-  else addSaved(t, kind);
+  const key = dedupKey(text, kind);
+  if (items.some((i) => dedupKey(i.text, i.kind) === key)) removeSavedByText(text, kind);
+  else addSaved(text, kind);
 }
 
 /** 加入生字(附中文解釋 + 例句)。 */
@@ -94,6 +117,7 @@ export function addVocab(word: string, meaning: string, example: string) {
   const t = word.trim();
   if (!t) return;
   if (items.some((i) => i.text === t && i.kind === "vocab")) return;
+  delete tombstones[dedupKey(t, "vocab")];
   items = [
     { id: newId(), text: t, kind: "vocab", savedAt: Date.now(), meaning, example },
     ...items,
@@ -136,55 +160,107 @@ export function getAllSaved(): SavedItem[] {
   return items;
 }
 
-/** 按 text 合併兩份收藏:保留複習進度較深/較新嗰個。 */
-export function mergeSaved(a: SavedItem[], b: SavedItem[]): SavedItem[] {
-  const byText = new Map<string, SavedItem>();
+/**
+ * 合併兩份收藏(同類別同文字當同一項):保留複習進度較深/較新嗰個,
+ * 並保住 meaning/example。`tombs` 入面(刪除時間遲過該項 savedAt)嘅會剔走,
+ * 咁刪咗嘅嘢先唔會由雲端翻生。
+ */
+export function mergeSaved(
+  a: SavedItem[],
+  b: SavedItem[],
+  tombs: Tombstones = {}
+): SavedItem[] {
+  const byKey = new Map<string, SavedItem>();
   for (const it of [...a, ...b]) {
     if (!it || typeof it.text !== "string") continue;
-    const key = it.text.trim();
-    const prev = byText.get(key);
+    const kind: SavedKind = isKind(it.kind) ? it.kind : "reply";
+    const key = dedupKey(it.text, kind);
+    const prev = byKey.get(key);
     if (!prev) {
-      byText.set(key, it);
-    } else {
-      const pick =
-        (it.srs?.reps ?? 0) > (prev.srs?.reps ?? 0) ||
-        ((it.srs?.reps ?? 0) === (prev.srs?.reps ?? 0) && it.savedAt > prev.savedAt)
-          ? it
-          : prev;
-      byText.set(key, { ...pick, meaning: pick.meaning ?? prev.meaning ?? it.meaning });
+      byKey.set(key, { ...it, kind });
+      continue;
     }
+    const deeper =
+      (it.srs?.reps ?? 0) > (prev.srs?.reps ?? 0) ||
+      ((it.srs?.reps ?? 0) === (prev.srs?.reps ?? 0) && it.savedAt > prev.savedAt);
+    const pick = deeper ? it : prev;
+    const other = deeper ? prev : it;
+    byKey.set(key, {
+      ...pick,
+      kind,
+      // 補返另一邊有、自己冇嘅資料,唔好掉失
+      meaning: pick.meaning ?? other.meaning,
+      example: pick.example ?? other.example,
+      srs: pick.srs ?? other.srs,
+    });
   }
-  return [...byText.values()].sort((x, y) => y.savedAt - x.savedAt);
+  return [...byKey.values()]
+    .filter((it) => {
+      const deletedAt = tombs[dedupKey(it.text, it.kind)];
+      return deletedAt === undefined || deletedAt < it.savedAt;
+    })
+    .sort((x, y) => y.savedAt - x.savedAt);
 }
 
-/** 匯出成 JSON 字串(俾用戶備份落手機)。 */
+/** 攞刪除記錄(俾同步一齊上傳)。 */
+export function getTombstones(): Tombstones {
+  load();
+  return tombstones;
+}
+
+/** 合併遠端嘅刪除記錄(每個 key 取最遲嗰個時間)。 */
+export function mergeTombstones(remote: Tombstones | undefined) {
+  load();
+  if (!remote) return;
+  for (const [k, v] of Object.entries(remote)) {
+    if (typeof v === "number" && v > (tombstones[k] ?? 0)) tombstones[k] = v;
+  }
+  persist();
+}
+
+function isKind(k: unknown): k is SavedKind {
+  return k === "correction" || k === "rewrite" || k === "reply" || k === "vocab";
+}
+
+/** 匯出成 JSON 字串(俾用戶備份落手機);連刪除記錄一齊帶走。 */
 export function exportSavedJson(): string {
   load();
-  return JSON.stringify({ version: 1, exportedAt: Date.now(), items }, null, 2);
+  return JSON.stringify(
+    { version: 2, exportedAt: Date.now(), items, tombstones },
+    null,
+    2
+  );
 }
 
-/** 由備份匯入,按文字去重合併;回傳實際新增咗幾多句。 */
+/**
+ * 由備份匯入,同類別同文字去重;回傳實際新增咗幾多項。
+ * ⚠️ 一定要保住 srs(複習進度)同 meaning/example(生字解釋),
+ * 唔係還原之後生字簿就冇晒解釋、SRS 歸零。
+ */
 export function importSavedItems(incoming: unknown): number {
   load();
   const arr = Array.isArray(incoming) ? incoming : [];
-  const seen = new Set(items.map((i) => i.text));
+  const seen = new Set(items.map((i) => dedupKey(i.text, i.kind)));
   const merged = [...items];
   let added = 0;
   for (const raw of arr) {
     const it = raw as Partial<SavedItem>;
     if (!it || typeof it.text !== "string") continue;
     const t = it.text.trim();
-    if (!t || seen.has(t)) continue;
-    seen.add(t);
-    const kind: SavedKind =
-      it.kind === "correction" || it.kind === "rewrite" || it.kind === "reply"
-        ? it.kind
-        : "reply";
+    if (!t) continue;
+    const kind: SavedKind = isKind(it.kind) ? it.kind : "reply";
+    const key = dedupKey(t, kind);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    delete tombstones[key]; // 明確匯入 → 蓋過舊嘅刪除記錄
     merged.push({
       id: newId(),
       text: t,
       kind,
       savedAt: typeof it.savedAt === "number" ? it.savedAt : Date.now(),
+      ...(it.srs ? { srs: it.srs } : {}),
+      ...(typeof it.meaning === "string" ? { meaning: it.meaning } : {}),
+      ...(typeof it.example === "string" ? { example: it.example } : {}),
     });
     added++;
   }

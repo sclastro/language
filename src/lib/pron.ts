@@ -5,13 +5,18 @@
 export type PronWord = { word: string; ok: boolean };
 export type PronResult = { words: PronWord[]; score: number; heard: string };
 
-function norm(s: string): string[] {
-  return s
+/** 將一個顯示用嘅字,轉成 0 個或多個比對用 token(例如 "well-known" → ["well","known"])。 */
+function tokenize(word: string): string[] {
+  return word
     .toLowerCase()
     .replace(/[’']/g, "'")
     .replace(/[^a-z0-9' ]+/g, " ")
     .split(/\s+/)
     .filter(Boolean);
+}
+
+function norm(s: string): string[] {
+  return s.split(/\s+/).filter(Boolean).flatMap(tokenize);
 }
 
 export function scorePronunciation(target: string, heard: string): PronResult {
@@ -41,17 +46,21 @@ export function scorePronunciation(target: string, heard: string): PronResult {
     else j++;
   }
 
-  // 將 norm 後嘅標記映射返顯示用嘅原字(位置一一對應:norm 唔會刪走整個字,除非佢冇字母)
+  // 將 token 層面嘅標記,對應返顯示用嘅原字。
+  // ⚠️ 一個顯示字可以拆成多過一個 token(如 "well-known"),所以要用實際 token 數行位,
+  //    唔可以每個字加一 —— 否則之後所有字嘅紅綠都會錯位。
   const words: PronWord[] = [];
   let k = 0;
   for (const w of targetWords) {
-    const hasAlpha = /[a-zA-Z0-9]/.test(w);
-    if (!hasAlpha) {
+    const count = tokenize(w).length;
+    if (count === 0) {
+      // 純標點(例如單獨一個 "—"),唔計分
       words.push({ word: w, ok: true });
       continue;
     }
-    words.push({ word: w, ok: matched[k] ?? false });
-    k++;
+    const slice = matched.slice(k, k + count);
+    words.push({ word: w, ok: slice.length > 0 && slice.every(Boolean) });
+    k += count;
   }
   const total = matched.length || 1;
   const score = Math.round((matched.filter(Boolean).length / total) * 100);

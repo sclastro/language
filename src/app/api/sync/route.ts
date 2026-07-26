@@ -36,8 +36,15 @@ export async function GET() {
   if (!kvEnv()) return NextResponse.json({ configured: false });
   try {
     const result = await kvCommand(["GET", SYNC_KEY]);
-    const items = typeof result === "string" ? JSON.parse(result) : [];
-    return NextResponse.json({ configured: true, items: Array.isArray(items) ? items : [] });
+    const parsed = typeof result === "string" ? JSON.parse(result) : null;
+    // v1 存嘅係一個 array;v2 存 { items, tombstones }。兩種都讀得。
+    const items = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
+    const tombstones = Array.isArray(parsed) ? {} : (parsed?.tombstones ?? {});
+    return NextResponse.json({
+      configured: true,
+      items: Array.isArray(items) ? items : [],
+      tombstones: tombstones && typeof tombstones === "object" ? tombstones : {},
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "讀取雲端失敗。";
     return NextResponse.json({ configured: true, error: message }, { status: 502 });
@@ -49,9 +56,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "未設定雲端同步。" }, { status: 400 });
   }
   try {
-    const body = (await request.json()) as { items?: unknown[] };
+    const body = (await request.json()) as {
+      items?: unknown[];
+      tombstones?: Record<string, number>;
+    };
     const items = Array.isArray(body.items) ? body.items : [];
-    await kvCommand(["SET", SYNC_KEY, JSON.stringify(items)]);
+    const tombstones =
+      body.tombstones && typeof body.tombstones === "object" ? body.tombstones : {};
+    await kvCommand(["SET", SYNC_KEY, JSON.stringify({ items, tombstones })]);
     return NextResponse.json({ ok: true, count: items.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : "寫入雲端失敗。";
