@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPoeClient, DEFAULT_MODEL } from "@/lib/poe";
+import { getPoeClient, DEFAULT_MODEL, friendlyError } from "@/lib/poe";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -52,11 +52,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ word, meaning, example });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "查詢出錯。";
-    const status =
-      typeof (err as { status?: number }).status === "number"
-        ? (err as { status: number }).status
-        : 500;
+    const { message, status } = friendlyError(err);
     return NextResponse.json({ error: message }, { status });
   }
 }

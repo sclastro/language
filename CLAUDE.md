@@ -16,6 +16,7 @@
 ```bash
 npm install
 npm run dev      # http://localhost:3000
+npm test         # vitest 單元測試(純函數:srs / pron / savedStore)
 npm run build    # 出 PR 前一定要 build 過(等於 typecheck)
 npm start        # 行 production build
 ```
@@ -81,7 +82,10 @@ npm start        # 行 production build
 ## 慣例
 - 註解同 UI 文字用**廣東話/繁中**(跟返現有風格)。
 - 加 Poe 相關功能前,**用 curl 真機試個 endpoint/model 名先**至寫 code(呢個 codebase 好多決定都係咁驗返嚟)。
-- 出 PR 前 `npm run build` 要綠。
+- 出 PR 前 `npm test` 同 `npm run build` 都要綠。
+- **改動收藏資料嘅形狀就一定要加測試**(`test/savedStore.test.ts`)。曾經有個 bug:匯入備份
+  掉失咗 `srs`/`meaning`/`example`,備份等於保唔到命 —— 淨係數行數係捉唔到嘅。
+- 錯誤要經 `friendlyError()`(`lib/poe.ts`)轉中文先俾用戶睇,唔好直接彈 Poe 英文原文。
 
 ## Git / 部署
 - 開發 branch:`claude/poe-api-language-learning-mfhxur`。改嘢 → PR → merge 落 `main`。

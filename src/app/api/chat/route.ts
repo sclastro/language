@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getPoeClient, DEFAULT_MODEL, AVAILABLE_MODELS } from "@/lib/poe";
+import {
+  getPoeClient,
+  DEFAULT_MODEL,
+  AVAILABLE_MODELS,
+  friendlyError,
+} from "@/lib/poe";
 import { buildSystemPrompt } from "@/lib/prompt";
 import type { ChatMessage, Level, TutorResponse } from "@/lib/types";
 
@@ -106,13 +111,24 @@ export async function POST(request: Request) {
     ...trimmed.map((m) => ({ role: m.role, content: m.content })),
   ];
 
+  // 早啲攞 client:冇 key 之類嘅設定問題要回一個清楚嘅 JSON 錯誤,
+  // 唔好留返喺 stream 入面爆(咁客戶端只會見到斷線,查極都唔知咩事)。
+  let client: ReturnType<typeof getPoeClient>;
+  try {
+    client = getPoeClient();
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Poe client 初始化失敗。" },
+      { status: 500 }
+    );
+  }
+
   const encoder = new TextEncoder();
   const send = (controller: ReadableStreamDefaultController, obj: unknown) =>
     controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
 
   const stream = new ReadableStream({
     async start(controller) {
-      const client = getPoeClient();
       let full = "";
       try {
         // 首選:串流(reply 逐字送去前端)
@@ -143,8 +159,7 @@ export async function POST(request: Request) {
           });
           full = completion.choices[0]?.message?.content ?? "";
         } catch (err) {
-          const message = err instanceof Error ? err.message : "呼叫 Poe API 時出錯。";
-          send(controller, { t: "e", error: message });
+          send(controller, { t: "e", error: friendlyError(err).message });
           controller.close();
           return;
         }

@@ -374,6 +374,15 @@ input {
 .error {
   color: var(--danger);
 }
+.statusbar.budget-warn {
+  color: var(--warn);
+}
+.statusbar.budget-over {
+  color: var(--danger);
+}
+.budget-note {
+  font-weight: 600;
+}
 .typing {
   color: var(--muted);
   font-size: 15px;

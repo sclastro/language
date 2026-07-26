@@ -12,7 +12,7 @@ import VocabSheet, {
 } from "@/components/VocabSheet";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useSaved, dueItems } from "@/lib/savedStore";
-import { addUsage, useUsage } from "@/lib/usage";
+import { addUsage, useUsage, budgetLevel, DAILY_BUDGET } from "@/lib/usage";
 import {
   useConvos,
   getActive,
@@ -405,13 +405,22 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="statusbar">
+      <div className={`statusbar budget-${budgetLevel(usage)}`}>
         <span>模型:{model}</span>
-        <span>今日 ~{usage.today.tokens.toLocaleString()} tokens</span>
+        <span>
+          今日 ~{usage.today.tokens.toLocaleString()} / {DAILY_BUDGET.toLocaleString()} tokens
+        </span>
         <span>本月 ~{usage.month.tokens.toLocaleString()} tokens</span>
         <span>
           🔊 {usage.today.tts} · 🎤 {usage.today.stt} 次(今日)
         </span>
+        {budgetLevel(usage) !== "ok" && (
+          <span className="budget-note">
+            {budgetLevel(usage) === "over"
+              ? "⚠️ 已經超咗預算,考慮轉平啲嘅模型"
+              : "⚠️ 接近今日預算"}
+          </span>
+        )}
       </div>
 
       <VocabSheet lookup={lookup} onClose={() => setLookup(null)} />
