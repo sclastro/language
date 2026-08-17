@@ -1,119 +1,146 @@
 import { describe, it, expect } from "vitest";
-import { convoToText, convosToText, toTextFile } from "@/lib/textExport";
+import {
+  correctedText,
+  convoToText,
+  convosToText,
+  toTextFile,
+} from "@/lib/textExport";
 import type { Convo } from "@/lib/convoStore";
 
-const convo = (over: Partial<Convo> = {}): Convo =>
+const convo = (items: Convo["items"], updatedAt = 1_700_000_000_000): Convo =>
   ({
-    id: "c1",
-    title: "Cinema chat",
+    id: "c" + updatedAt,
+    title: "Chat",
     scenario: "free",
-    createdAt: 1_700_000_000_000,
-    updatedAt: 1_700_000_000_000,
-    items: [],
-    ...over,
+    createdAt: updatedAt,
+    updatedAt,
+    items,
   }) as Convo;
 
-describe("convoToText", () => {
-  const full = convo({
-    title: "Cinema chat",
-    scenario: "interview",
-    items: [
-      {
+describe("correctedText — 只取已改好的版本", () => {
+  it("有 rewrite 就用 rewrite", () => {
+    expect(
+      correctedText({
         kind: "user",
         content: "I go to cinema yesterday.",
         corrections: [
-          {
-            original: "I go to cinema yesterday",
-            corrected: "I went to the cinema yesterday",
-            explanation: "描述昨天的事要用過去式「went」。",
-          },
+          { original: "I go", corrected: "I went", explanation: "過去式。" },
         ],
         rewrite: "I went to the cinema yesterday.",
-      },
-      { kind: "assistant", content: "That sounds fun! What did you watch?" },
-    ],
+      })
+    ).toBe("I went to the cinema yesterday.");
   });
 
-  it("標題同情境放喺開頭", () => {
-    const t = convoToText(full);
-    expect(t).toContain("Cinema chat");
-    expect(t).toContain("Job interview"); // scenario id 要轉成人看得懂的名稱
+  it("本來就沒問題(沒有糾正)就用原句", () => {
+    expect(
+      correctedText({ kind: "user", content: "I love running.", corrections: [] })
+    ).toBe("I love running.");
   });
 
-  it("分清楚邊句係你講、邊句係 AI", () => {
-    const t = convoToText(full);
-    expect(t).toContain("[You]");
-    expect(t).toContain("I go to cinema yesterday.");
-    expect(t).toContain("[AI]");
-    expect(t).toContain("That sounds fun! What did you watch?");
-  });
-
-  it("列出糾正同中文解釋(這才是最值得溫習的部分)", () => {
-    const t = convoToText(full);
-    expect(t).toContain('"I go to cinema yesterday" -> "I went to the cinema yesterday"');
-    expect(t).toContain("描述昨天的事要用過去式「went」。");
-  });
-
-  it("有完整正確版本就列出", () => {
-    expect(convoToText(full)).toContain("Full corrected version:");
-  });
-
-  it("rewrite 同原句一樣就不重複列出", () => {
-    const t = convoToText(
-      convo({
-        items: [
+  // 關鍵:有錯但沒有可信的正確版本時,絕不可以把錯句輸出
+  it("有糾正但沒有 rewrite → 略過,不輸出錯句", () => {
+    expect(
+      correctedText({
+        kind: "user",
+        content: "My elder son, which is a form 6 student",
+        corrections: [
           {
-            kind: "user",
-            content: "I went to the cinema.",
-            corrections: [],
-            rewrite: "I went to the cinema.",
+            original: "which",
+            corrected: "who",
+            explanation: "指人用 who。",
           },
         ],
+        rewrite: "",
       })
-    );
-    expect(t).not.toContain("Full corrected version:");
-    expect(t).not.toContain("Corrections:");
+    ).toBeNull();
   });
 
-  it("沒有糾正的訊息照樣輸出,不會假裝有糾正", () => {
-    const t = convoToText(
-      convo({ items: [{ kind: "user", content: "Hello there." }] })
-    );
-    expect(t).toContain("Hello there.");
-    expect(t).not.toContain("Corrections:");
+  it("AI 的回覆一律不要", () => {
+    expect(
+      correctedText({ kind: "assistant", content: "That sounds fun!" })
+    ).toBeNull();
   });
 
-  it("空白對話不會爆", () => {
-    expect(() => convoToText(convo())).not.toThrow();
+  it("空白內容不會輸出空行", () => {
+    expect(correctedText({ kind: "user", content: "   ", corrections: [] })).toBeNull();
+  });
+});
+
+describe("convoToText", () => {
+  const c = convo([
+    {
+      kind: "user",
+      content: "I go to cinema yesterday.",
+      corrections: [{ original: "I go", corrected: "I went", explanation: "過去式。" }],
+      rewrite: "I went to the cinema yesterday.",
+    },
+    { kind: "assistant", content: "That sounds fun! What did you watch?" },
+    { kind: "user", content: "We watched a documentary.", corrections: [] },
+  ]);
+
+  it("只有已改好的句子,一句一段", () => {
+    expect(convoToText(c)).toBe(
+      "I went to the cinema yesterday.\n\nWe watched a documentary."
+    );
+  });
+
+  it("沒有標題、日期、情境名", () => {
+    const t = convoToText(c);
+    expect(t).not.toContain("Chat");
+    expect(t).not.toContain("Free chat");
+    expect(t).not.toContain("2023");
+    expect(t).not.toContain("=");
+  });
+
+  it("沒有 [You] / [AI] 標記,沒有 AI 回覆", () => {
+    const t = convoToText(c);
+    expect(t).not.toContain("[You]");
+    expect(t).not.toContain("[AI]");
+    expect(t).not.toContain("That sounds fun");
+  });
+
+  it("沒有原本寫錯的版本,沒有糾正解釋", () => {
+    const t = convoToText(c);
+    expect(t).not.toContain("I go to cinema yesterday.");
+    expect(t).not.toContain("過去式");
+    expect(t).not.toContain("Corrections");
+  });
+
+  it("空白對話回空字串", () => {
+    expect(convoToText(convo([]))).toBe("");
   });
 });
 
 describe("convosToText", () => {
-  it("有標頭,並數出對話數目", () => {
-    const t = convosToText([convo({ id: "a" }), convo({ id: "b", title: "Trip" })]);
-    expect(t).toContain("English Tutor");
-    expect(t).toContain("2 conversations");
-  });
-
-  it("最近更新的排最前", () => {
+  it("多個對話由舊到新串起來", () => {
     const t = convosToText([
-      convo({ id: "old", title: "OLDER", updatedAt: 1000 }),
-      convo({ id: "new", title: "NEWER", updatedAt: 9000 }),
+      convo([{ kind: "user", content: "Newer sentence.", corrections: [] }], 9000),
+      convo([{ kind: "user", content: "Older sentence.", corrections: [] }], 1000),
     ]);
-    expect(t.indexOf("NEWER")).toBeLessThan(t.indexOf("OLDER"));
+    expect(t.indexOf("Older sentence.")).toBeLessThan(t.indexOf("Newer sentence."));
   });
 
-  it("單數/複數用字正確", () => {
-    expect(convosToText([convo()])).toContain("1 conversation");
+  it("完全沒有可輸出的句子就回空字串", () => {
+    expect(convosToText([])).toBe("");
+    expect(convosToText([convo([{ kind: "assistant", content: "hi" }])])).toBe("");
   });
 
-  it("完全沒有對話時給一句人話", () => {
-    expect(convosToText([])).toBe("No conversations to export.\n");
+  it("結尾有一個換行", () => {
+    const t = convosToText([convo([{ kind: "user", content: "One.", corrections: [] }])]);
+    expect(t).toBe("One.\n");
+  });
+
+  it("跳過沒有內容的對話,不留下空白段落", () => {
+    const t = convosToText([
+      convo([{ kind: "user", content: "Kept.", corrections: [] }], 2000),
+      convo([], 1000),
+    ]);
+    expect(t).toBe("Kept.\n");
   });
 });
 
 describe("toTextFile", () => {
-  const BOM = "\uFEFF";
+  const BOM = "﻿";
 
   it("轉成 CRLF,Windows 記事本才不會擠成一行", () => {
     expect(toTextFile("a\nb\nc")).toBe(BOM + "a\r\nb\r\nc");
@@ -123,9 +150,7 @@ describe("toTextFile", () => {
     expect(toTextFile("a\r\nb")).toBe(BOM + "a\r\nb");
   });
 
-  // 沒有 BOM 的話,部分編輯器會把 UTF-8 猜成 ANSI,中文解釋會變亂碼
   it("開頭加 UTF-8 BOM", () => {
-    expect(toTextFile("糾正解釋").charCodeAt(0)).toBe(0xfeff);
-    expect(toTextFile("糾正解釋").slice(1)).toBe("糾正解釋");
+    expect(toTextFile("x").charCodeAt(0)).toBe(0xfeff);
   });
 });

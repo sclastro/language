@@ -584,6 +584,73 @@ input {
   .saved-toolbar button {
     white-space: nowrap;
   }
+
+  /* ── ★ Saved 頁面:騰出空間俾清單 ──
+     曾經量到:頂部 123px + 工具列 129px = 252px(佔螢幕 31%),而單一條長句
+     更高達 352px,結果一屏只看得到一項半。以下把兩者都壓縮。 */
+  .header .controls .ghost-btn,
+  .header .controls button {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+  .saved-toolbar {
+    padding: 7px 12px;
+    gap: 6px;
+    row-gap: 6px;
+  }
+  .saved-toolbar button {
+    padding: 5px 9px;
+    font-size: 14px;
+  }
+  .saved-count {
+    font-size: 13px;
+  }
+  /* 計數跟 Select all／排序同一行,唔好獨佔一行 */
+  .saved-toolbar-right {
+    margin-left: 0;
+    width: 100%;
+  }
+  .saved-toolbar-right button {
+    flex: 1 1 0;
+  }
+
+  .saved-list {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .saved-row {
+    padding: 10px 12px;
+    gap: 10px;
+    border-radius: 10px;
+  }
+  .saved-text {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .saved-vocab-meaning {
+    font-size: 13px;
+  }
+}
+
+/* 長句默認只顯示四行,撳一下展開 —— 十幾項長句的話,唔剪就要一直捲。 */
+.saved-text.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+.saved-text.expandable {
+  cursor: pointer;
+}
+.saved-more {
+  background: none;
+  border: none;
+  padding: 2px 0 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
 }
 
 /* ---- tappable words + vocab sheet ---- */

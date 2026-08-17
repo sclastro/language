@@ -1,83 +1,49 @@
-import { SCENARIOS } from "./scenarios";
 import type { Convo } from "./convoStore";
 
 /**
- * 把對話輸出成純文字,方便閱讀、列印或貼到其他地方。
+ * 把對話輸出成純文字。
  *
- * 備份用的 JSON 是給程式讀的,人看不懂;這裡的重點是**可讀性**:
- * 每輪連同糾正與完整正確版本一併列出,那才是真正值得溫習的內容。
+ * 刻意只輸出**已經改好的英文**:沒有標題、日期、原本寫錯的版本、糾正解釋,
+ * 亦沒有 AI 的回覆。用戶要的是一份可以直接閱讀或再用的乾淨文字。
  * 統一用 \n,下載時才轉成 \r\n(見 `toTextFile`),Windows 記事本才不會擠成一行。
  */
 
-function scenarioLabel(id: string): string {
-  return SCENARIOS.find((s) => s.id === id)?.label ?? id;
+/**
+ * 抽出一句「已改好」的英文:
+ *  - 有 rewrite(完整正確版本)就用它
+ *  - 沒有 rewrite 但原句本來就沒問題(沒有糾正)→ 用原句
+ *  - 有糾正卻沒有 rewrite(例如當時輸出被截斷)→ 沒有可信的正確版本,略過,
+ *    寧可少一句,都不要把未改好的錯句混進去
+ */
+export function correctedText(it: Convo["items"][number]): string | null {
+  if (it.kind !== "user") return null;
+  const rewrite = it.rewrite?.trim();
+  if (rewrite) return rewrite;
+  const hasIssues = !!it.corrections && it.corrections.length > 0;
+  if (hasIssues) return null;
+  const content = it.content.trim();
+  return content || null;
 }
 
-function fmtDate(ts: number): string {
-  return new Date(ts).toLocaleString("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/** 單一對話轉純文字。 */
+/** 單一對話 → 只有已改好的句子,一句一段。 */
 export function convoToText(c: Convo): string {
-  const out: string[] = [];
-  const bar = "=".repeat(60);
-  out.push(bar);
-  out.push(c.title);
-  out.push(`${scenarioLabel(c.scenario)} · ${fmtDate(c.updatedAt)}`);
-  out.push(bar);
-  out.push("");
-
-  for (const it of c.items) {
-    if (it.kind === "user") {
-      out.push("[You]");
-      out.push(it.content);
-
-      if (it.corrections && it.corrections.length > 0) {
-        out.push("");
-        out.push("  Corrections:");
-        for (const k of it.corrections) {
-          out.push(`  - "${k.original}" -> "${k.corrected}"`);
-          if (k.explanation) out.push(`    ${k.explanation}`);
-        }
-      }
-      // rewrite 與原句相同就不必重複列出
-      if (it.rewrite && it.rewrite.trim() !== it.content.trim()) {
-        out.push("");
-        out.push("  Full corrected version:");
-        out.push(`  ${it.rewrite}`);
-      }
-    } else {
-      out.push("[AI]");
-      out.push(it.content);
-    }
-    out.push("");
-  }
-  return out.join("\n").trimEnd() + "\n";
+  return c.items
+    .map(correctedText)
+    .filter((s): s is string => !!s)
+    .join("\n\n");
 }
 
-/** 多個對話合成一個檔案(最近更新排最前)。 */
+/**
+ * 匯出成純文字:**只有已改好的英文**,沒有標題、日期、原句、糾正解釋或 AI 回覆。
+ * 用戶要的是可以直接閱讀或再用的乾淨文字。
+ */
 export function convosToText(convos: Convo[]): string {
-  if (convos.length === 0) {
-    return "No conversations to export.\n";
-  }
-  const header = [
-    "English Tutor — conversation transcript",
-    `Exported ${fmtDate(Date.now())}`,
-    `${convos.length} conversation${convos.length === 1 ? "" : "s"}`,
-    "",
-    "",
-  ].join("\n");
   const body = [...convos]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .sort((a, b) => a.updatedAt - b.updatedAt) // 由舊到新,順住學習次序讀
     .map(convoToText)
+    .filter((t) => t.length > 0)
     .join("\n\n");
-  return header + body;
+  return body.length > 0 ? body + "\n" : "";
 }
 
 /**
