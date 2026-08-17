@@ -17,6 +17,13 @@ import {
   type SavedItem,
   type SavedKind,
 } from "@/lib/savedStore";
+import {
+  getSyncableConvos,
+  getConvoTombstones,
+  mergeConvoTombstones,
+  mergeInConvos,
+} from "@/lib/convoStore";
+import { buildBackupJson, restoreBackup, describeRestore } from "@/lib/backup";
 
 const KIND_LABEL: Record<SavedKind, string> = {
   correction: "Correction",
@@ -58,6 +65,8 @@ export default function SavedPage() {
         configured?: boolean;
         items?: SavedItem[];
         tombstones?: Record<string, number>;
+        convos?: unknown[];
+        convoTombstones?: Record<string, number>;
         error?: string;
       };
       if (!data.configured) {
@@ -70,14 +79,34 @@ export default function SavedPage() {
       const tombs = getTombstones();
       const merged = mergeSaved(getAllSaved(), data.items ?? [], tombs);
       replaceAll(merged);
+
+      // 對話同樣要同步(逐個對話 last-write-wins)。
+      mergeConvoTombstones(data.convoTombstones);
+      const pulled = mergeInConvos(data.convos);
+      const convoTombs = getConvoTombstones();
+      const convos = getSyncableConvos();
+
       const push = await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: merged, tombstones: tombs }),
+        body: JSON.stringify({
+          items: merged,
+          tombstones: tombs,
+          convos,
+          convoTombstones: convoTombs,
+        }),
       });
       if (!push.ok) throw new Error("Failed to upload to the cloud");
+      const pushed = (await push.json().catch(() => ({}))) as { warning?: string };
       setSyncState("idle");
-      if (showNote) setNote(`☁ Synced (${merged.length} items)`);
+      if (pushed.warning) setError(pushed.warning);
+      if (showNote) {
+        setNote(
+          `☁ Synced — ${merged.length} saved item${merged.length === 1 ? "" : "s"}, ` +
+            `${convos.length} conversation${convos.length === 1 ? "" : "s"}` +
+            (pulled > 0 ? ` (${pulled} updated from another device)` : "")
+        );
+      }
     } catch (e) {
       setSyncState("idle");
       setError(e instanceof Error ? e.message : "Sync failed");
@@ -90,7 +119,8 @@ export default function SavedPage() {
   }, []);
 
   function backupJson() {
-    const blob = new Blob([exportSavedJson()], { type: "application/json" });
+    // 備份連對話一齊帶走(組裝邏輯喺 lib/backup.ts,有測試覆蓋)。
+    const blob = new Blob([buildBackupJson()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -108,11 +138,8 @@ export default function SavedPage() {
     setError(null);
     setNote(null);
     try {
-      const data = JSON.parse(await file.text());
-      const arr = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
-      if (!Array.isArray(data) && data?.tombstones) mergeTombstones(data.tombstones);
-      const n = importSavedItems(arr);
-      setNote(n > 0 ? `Imported ${n} new item${n === 1 ? "" : "s"}` : "Nothing new to import (items already exist)");
+      // 舊備份(v1 純陣列 / v2 冇 convos)一樣讀得,見 lib/backup.ts。
+      setNote(describeRestore(restoreBackup(JSON.parse(await file.text()))));
     } catch {
       setError("Import failed: unrecognised file format");
     }

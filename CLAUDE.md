@@ -59,17 +59,21 @@ npm start        # 執行 production build
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
 - `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
 - `export` — 將多句 TTS **去除 ID3 後串接成一個 MP3** 下載(重用 client 快取 URL 以節省 points)。
-- `sync` — 雲端同步(Upstash),未設定時回傳 `{configured:false}`。
+- `sync` — 雲端同步(Upstash),未設定時回傳 `{configured:false}`。v3 payload:
+  `{items, tombstones, convos, convoTombstones}` —— **收藏同對話都會同步**。
+  超過 900KB 會捨棄 convos 只同步收藏並回一個 `warning`(寧願少同步,好過成次失敗)。
 - `login` / `logout` — 密碼閘,cookie 存 `sha256(密碼+salt)`。
 
 ### 前端狀態(`src/lib/*`,以 `useSyncExternalStore` 實作輕量 store)
-- `convoStore` — 多對話(各自帶 scenario/items),自動由舊版單一對話遷移。
+- `convoStore` — 多對話(各自帶 scenario/items),自動由舊版單一對話遷移;
+  含刪除記錄,可同步/備份(逐個對話 last-write-wins;空白對話不同步;上限 30 個)。
 - `savedStore` — 收藏(correction/rewrite/reply/vocab),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
 - `srs` — 間隔重複(1→3→7→14→30→60 日)。
 - `usage` — 每日 token/TTS/STT 計數,附每日/每月預算提示。
 - `tts` — 三層語音快取:記憶體 → IndexedDB(`audioCache`)→ 網絡;全 app 單一播放。
 - `pron` — 跟讀評分(LCS 逐字比對,純本地)。
 - `scenarios` — 情境 role-play 清單。
+- `backup` — 組裝/還原備份檔(收藏 + 對話)。特意由頁面抽出來,方便測試。
 
 ### 頁面
 - `/` 對話(串流、情境、多對話、點字查生字、用量列)
@@ -88,8 +92,12 @@ npm start        # 執行 production build
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
 - 新增 Poe 相關功能前,**先用 curl 實測 endpoint/model 名稱**再寫 code(此 codebase 許多決定都是這樣驗證得來)。
 - 出 PR 前 `npm test` 與 `npm run build` 都要綠。
-- **改動收藏資料的形狀就必須加測試**(`test/savedStore.test.ts`)。曾有一個 bug:匯入備份
-  遺失了 `srs`/`meaning`/`example`,備份等於保不了命 —— 單靠計算項目數量是抓不到的。
+- **改動收藏或對話資料的形狀就必須加測試**(`test/savedStore.test.ts`、`test/backup.test.ts`)。
+  曾有兩個同類 bug:① 匯入備份遺失 `srs`/`meaning`/`example`;② 對話根本沒有備份到。
+  單靠計算項目數量抓不到,必須驗欄位。
+- **同步的刪除邏輯特別易錯**:另一部機刪除後,雲端會回「空清單 + 一條刪除記錄」。
+  合併函數若在 incoming 為空時提早返回,本機副本就永遠清不走,項目會「翻生」。
+  收藏與對話各有迴歸測試守住這一點。
 - 錯誤須經 `friendlyError()`(`lib/poe.ts`)轉成清楚的英文訊息再顯示給用戶,不要直接彈出 Poe 的原始錯誤。
 
 ## Git / 部署
