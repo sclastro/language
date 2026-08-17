@@ -69,6 +69,8 @@ npm start        # 執行 production build
 ### 前端狀態(`src/lib/*`,以 `useSyncExternalStore` 實作輕量 store)
 - `convoStore` — 多對話(各自帶 scenario/items),自動由舊版單一對話遷移;
   含刪除記錄,可同步/備份(逐個對話 last-write-wins;空白對話不同步;上限 30 個)。
+  `migrateConvos()` 在載入時修復舊資料:曾被當成訊息儲存的原始 JSON,以及中文舊標題。
+  是 idempotent 的,見 `test/migrate.test.ts`。
 - `savedStore` — 收藏(correction/rewrite/reply/vocab),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
 - `srs` — 間隔重複(1→3→7→14→30→60 日)。
 - `usage` — 每日 token/TTS/STT 計數,附每日/每月預算提示。
