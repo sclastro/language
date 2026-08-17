@@ -24,7 +24,7 @@ import {
   mergeInConvos,
 } from "@/lib/convoStore";
 import { buildBackupJson, restoreBackup, describeRestore } from "@/lib/backup";
-import { convosToText, toTextFile } from "@/lib/textExport";
+import { itemsToText, toTextFile } from "@/lib/textExport";
 
 const SORT_KEY = "english-tutor-saved-sort-v1";
 
@@ -125,7 +125,7 @@ export default function SavedPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 還原排序偏好(只做一次)
+  // 還原偏好(只做一次)
   useEffect(() => {
     try {
       setOldestFirst(localStorage.getItem(SORT_KEY) === "asc");
@@ -162,12 +162,11 @@ export default function SavedPage() {
     download(buildBackupJson(), `saved-backup-${Date.now()}.json`, "application/json");
   }
 
-  /** 匯出純文字:只有已改好的英文句子。 */
-  function exportChatsText() {
-    const text = convosToText(getSyncableConvos(Infinity));
-    // 有對話但一句都改好過,同樣要提示,唔好俾一個空檔案。
+  /** 匯出純文字:只匯出用戶自己在清單上揀選的項目。 */
+  function exportTextSelected() {
+    const text = itemsToText(selectedItems);
     if (text.trim().length === 0) {
-      setError("Nothing to export yet — no corrected sentences found.");
+      setError("Select some items first.");
       return;
     }
     const stamp = new Date().toISOString().slice(0, 10);
@@ -176,8 +175,8 @@ export default function SavedPage() {
       `english-tutor-sentences-${stamp}.txt`,
       "text/plain;charset=utf-8"
     );
-    const lines = text.trim().split(/\n\n+/).length;
-    setNote(`Exported ${lines} corrected sentence${lines === 1 ? "" : "s"}`);
+    const n = text.trim().split(/\n\n+/).length;
+    setNote(`Exported ${n} line${n === 1 ? "" : "s"} as text`);
   }
 
   async function importBackup(e: React.ChangeEvent<HTMLInputElement>) {
@@ -323,13 +322,6 @@ export default function SavedPage() {
           </button>
           <button
             className="ghost-btn"
-            onClick={exportChatsText}
-            title="Download your corrected sentences as plain text"
-          >
-            ⬇ Text
-          </button>
-          <button
-            className="ghost-btn"
             onClick={() => fileRef.current?.click()}
             title="Import from a backup file"
           >
@@ -395,11 +387,19 @@ export default function SavedPage() {
                 </button>
               )}
               <button
+                className="ghost-btn"
+                onClick={exportTextSelected}
+                disabled={selected.size === 0}
+                title="Download the selected items as plain text"
+              >
+                ⬇ Text
+              </button>
+              <button
                 className="primary-btn"
                 onClick={exportMp3}
                 disabled={selected.size === 0 || exporting}
               >
-                {exporting ? "Exporting…" : "⬇ Download MP3"}
+                {exporting ? "Exporting…" : "⬇ MP3"}
               </button>
             </div>
           </div>
