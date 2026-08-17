@@ -76,12 +76,14 @@ npm start        # 執行 production build
 - `pron` — 跟讀評分(LCS 逐字比對,純本地)。
 - `scenarios` — 情境 role-play 清單。
 - `backup` — 組裝/還原備份檔(收藏 + 對話)。特意由頁面抽出來,方便測試。
+- `textExport` — 把對話輸出成**可讀純文字**(連糾正與解釋)。下載時加 CRLF + UTF-8 BOM,
+  否則 Windows 記事本會擠成一行或把中文變亂碼。
 - `tutorJson` — 解析模型回覆的 JSON。**被 `max_tokens` 截斷時要搶救**(抽出 reply、
   rewrite 及所有括號完整的糾正),並回 `truncated: true`。切勿把原始 JSON 顯示給用戶。
 
 ### 頁面
 - `/` 對話(串流、情境、多對話、點字查生字、用量列)
-- `/saved` 收藏(播放/匯出 MP3、備份 JSON、雲端同步)
+- `/saved` 收藏(播放/匯出 MP3、備份 JSON、匯出對話純文字、雲端同步)
 - `/review` 今日複習(SRS 卡 + 跟讀評分)
 - `/login` 密碼閘
 
