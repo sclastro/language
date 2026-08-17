@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SpeakerButton from "@/components/SpeakerButton";
 import { fetchTtsUrl, getCachedCdnUrl } from "@/lib/tts";
 import {
@@ -24,6 +24,8 @@ import {
   mergeInConvos,
 } from "@/lib/convoStore";
 import { buildBackupJson, restoreBackup, describeRestore } from "@/lib/backup";
+
+const SORT_KEY = "english-tutor-saved-sort-v1";
 
 const KIND_LABEL: Record<SavedKind, string> = {
   correction: "Correction",
@@ -51,6 +53,8 @@ export default function SavedPage() {
   const [note, setNote] = useState<string | null>(null);
 
   const [syncState, setSyncState] = useState<"off" | "idle" | "syncing">("off");
+  // 排序方向:false = 最新在前(預設),true = 最舊在前。記住用戶的選擇。
+  const [oldestFirst, setOldestFirst] = useState(false);
 
   const stopRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -118,6 +122,27 @@ export default function SavedPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 還原排序偏好(只做一次)
+  useEffect(() => {
+    try {
+      setOldestFirst(localStorage.getItem(SORT_KEY) === "asc");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function toggleSort() {
+    setOldestFirst((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SORT_KEY, next ? "asc" : "desc");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
   function backupJson() {
     // 備份連對話一齊帶走(組裝邏輯喺 lib/backup.ts,有測試覆蓋)。
     const blob = new Blob([buildBackupJson()], { type: "application/json" });
@@ -145,8 +170,18 @@ export default function SavedPage() {
     }
   }
 
+  // savedStore 一律以 savedAt 由新到舊排好;這裡按用戶選擇再排一次。
+  const view = useMemo(
+    () =>
+      [...items].sort((a, b) =>
+        oldestFirst ? a.savedAt - b.savedAt : b.savedAt - a.savedAt
+      ),
+    [items, oldestFirst]
+  );
+
   const allSelected = items.length > 0 && selected.size === items.length;
-  const selectedItems = items.filter((i) => selected.has(i.id));
+  // 跟顯示次序,播放同匯出 MP3 的順序才符合預期。
+  const selectedItems = view.filter((i) => selected.has(i.id));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -301,6 +336,17 @@ export default function SavedPage() {
             <button className="ghost-btn" onClick={toggleAll}>
               {allSelected ? "Clear selection" : "Select all"}
             </button>
+            <button
+              className="ghost-btn"
+              onClick={toggleSort}
+              title={
+                oldestFirst
+                  ? "Sorted oldest first — tap for newest first"
+                  : "Sorted newest first — tap for oldest first"
+              }
+            >
+              {oldestFirst ? "↑ Oldest first" : "↓ Newest first"}
+            </button>
             <span className="saved-count">{selected.size} of {items.length} selected</span>
             <div className="saved-toolbar-right">
               {playing ? (
@@ -327,7 +373,7 @@ export default function SavedPage() {
           </div>
 
           <div className="messages saved-list">
-            {items.map((it) => (
+            {view.map((it) => (
               <div className="saved-row" key={it.id}>
                 <input
                   type="checkbox"
