@@ -28,13 +28,13 @@ export async function POST(request: Request) {
 
   if (!dataUrl.startsWith("data:")) {
     return NextResponse.json(
-      { error: "沒有有效的音訊資料。" },
+      { error: "No valid audio data." },
       { status: 400 }
     );
   }
   if (dataUrl.length > MAX_DATA_URL_LEN) {
     return NextResponse.json(
-      { error: "錄音過長,請縮短內容再試。" },
+      { error: "That recording is too long. Please record something shorter." },
       { status: 413 }
     );
   }

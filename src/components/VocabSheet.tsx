@@ -70,20 +70,20 @@ export default function VocabSheet({
         className="sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={`生字:${lookup.word}`}
+        aria-label={`Word: ${lookup.word}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet-word">
           {lookup.word}
-          <SpeakerButton text={lookup.word} title="讀出生字" />
+          <SpeakerButton text={lookup.word} title="Read the word aloud" />
         </div>
-        {lookup.loading && <div className="sheet-loading">查詢中…</div>}
+        {lookup.loading && <div className="sheet-loading">Looking up…</div>}
         {lookup.error && <div className="login-error">⚠️ {lookup.error}</div>}
         {lookup.meaning && <div className="sheet-meaning">{lookup.meaning}</div>}
         {lookup.example && (
           <div className="sheet-example">
             {lookup.example}
-            <SpeakerButton text={lookup.example} title="讀出例句" />
+            <SpeakerButton text={lookup.example} title="Read the example aloud" />
           </div>
         )}
         <div className="sheet-actions">
@@ -95,10 +95,10 @@ export default function VocabSheet({
               setAdded(true);
             }}
           >
-            {already ? "✓ 已在生字簿" : "＋ 加入生字簿"}
+            {already ? "✓ In vocab list" : "＋ Add to vocab"}
           </button>
           <button className="ghost-btn" onClick={onClose}>
-            關閉
+            Close
           </button>
         </div>
       </div>
@@ -118,7 +118,7 @@ export async function lookupWord(word: string, sentence: string) {
     example?: string;
     error?: string;
   };
-  if (!res.ok) throw new Error(data.error || "查詢失敗");
+  if (!res.ok) throw new Error(data.error || "Lookup failed");
   addUsage({ tokens: 120 }); // 粗略估算一次查字的成本
   return { meaning: data.meaning ?? "", example: data.example ?? "" };
 }

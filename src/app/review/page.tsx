@@ -41,13 +41,13 @@ export default function ReviewPage() {
   return (
     <div className="app">
       <header className="header">
-        <h1>📅 今日複習</h1>
+        <h1>📅 Today’s Review</h1>
         <div className="controls">
           <Link className="ghost-btn" href="/saved">
-            ★ 收藏
+            ★ Saved
           </Link>
           <Link className="ghost-btn" href="/">
-            ← 返回
+            ← Back
           </Link>
         </div>
       </header>
@@ -57,15 +57,15 @@ export default function ReviewPage() {
           <div className="empty">
             {done > 0 ? (
               <>
-                🎉 今日已複習完畢!共完成 {done} 張卡。
+                🎉 All done for today — {done} card{done === 1 ? "" : "s"} reviewed.
                 <br />
-                明天再來,間隔重複才能記得牢固。
+                Come back tomorrow — spacing them out is what makes them stick.
               </>
             ) : (
               <>
-                今日沒有需要複習的項目 🎉
+                Nothing due today 🎉
                 <br />
-                在對話中收藏更多句子或生字,系統就會自動為你安排複習時間。
+                Save more sentences or words while chatting and they will be scheduled here automatically.
               </>
             )}
           </div>
@@ -73,23 +73,23 @@ export default function ReviewPage() {
       ) : (
         <div className="messages review-wrap">
           <div className="review-progress">
-            剩餘 {queue.length} 張 · 已完成 {done} 張
+            {queue.length} left · {done} done
           </div>
 
           <div className="review-card">
             <div className="review-kind">
-              {isVocab ? "生字" : "句子"} · 收藏於{" "}
-              {new Date(current.savedAt).toLocaleDateString("zh-HK")}
+              {isVocab ? "Word" : "Sentence"} · saved{" "}
+              {new Date(current.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </div>
 
             <div className="review-text">
               {current.text}
-              <SpeakerButton text={current.text} title="讀出" />
+              <SpeakerButton text={current.text} title="Read aloud" />
             </div>
 
             {isVocab && !revealed && (
               <button className="ghost-btn" onClick={() => setRevealed(true)}>
-                顯示解釋
+                Show meaning
               </button>
             )}
             {isVocab && revealed && (
@@ -98,7 +98,7 @@ export default function ReviewPage() {
                 {current.example && (
                   <div className="review-example">
                     {current.example}
-                    <SpeakerButton text={current.example} title="讀出例句" />
+                    <SpeakerButton text={current.example} title="Read the example aloud" />
                   </div>
                 )}
               </div>
@@ -108,10 +108,10 @@ export default function ReviewPage() {
 
             <div className="review-grade">
               <button className="grade-btn bad" onClick={() => grade(false)}>
-                ✗ 忘記了
+                ✗ Forgot
               </button>
               <button className="grade-btn good" onClick={() => grade(true)}>
-                ✓ 記得
+                ✓ Got it
               </button>
             </div>
           </div>

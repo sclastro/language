@@ -33,7 +33,7 @@ export async function middleware(req: NextRequest) {
 
   // 未登入
   if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "需要登入。" }, { status: 401 });
+    return NextResponse.json({ error: "Login required." }, { status: 401 });
   }
   if (pathname === "/login") return NextResponse.next();
   return NextResponse.redirect(new URL("/login", req.url));

@@ -46,14 +46,14 @@ export async function GET() {
       tombstones: tombstones && typeof tombstones === "object" ? tombstones : {},
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "讀取雲端失敗。";
+    const message = err instanceof Error ? err.message : "Failed to read from the cloud.";
     return NextResponse.json({ configured: true, error: message }, { status: 502 });
   }
 }
 
 export async function POST(request: Request) {
   if (!kvEnv()) {
-    return NextResponse.json({ error: "未設定雲端同步。" }, { status: 400 });
+    return NextResponse.json({ error: "Cloud sync is not configured." }, { status: 400 });
   }
   try {
     const body = (await request.json()) as {
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     await kvCommand(["SET", SYNC_KEY, JSON.stringify({ items, tombstones })]);
     return NextResponse.json({ ok: true, count: items.length });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "寫入雲端失敗。";
+    const message = err instanceof Error ? err.message : "Failed to write to the cloud.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

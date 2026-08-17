@@ -3,13 +3,13 @@ import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "英文對話練習 · English Tutor",
-  description: "與 AI 用英文對話,即時糾正語法及用詞。",
+  title: "English Tutor",
+  description: "Practise English conversation with AI and get instant grammar and word-choice corrections.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "英文練習",
+    title: "English Tutor",
   },
   icons: {
     icon: [
@@ -35,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-Hant">
+    <html lang="en">
       <body>
         {children}
         <ServiceWorkerRegister />

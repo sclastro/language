@@ -14,7 +14,7 @@ export default function CorrectionCard({
   if (corrections.length === 0) {
     return (
       <div className="correction ok">
-        <div className="c-head">✓ 沒有問題,寫得很自然!</div>
+        <div className="c-head">✓ Looks good — that sounds natural!</div>
       </div>
     );
   }
@@ -25,14 +25,14 @@ export default function CorrectionCard({
 
   return (
     <div className="correction">
-      <div className="c-head">✎ 糾正</div>
+      <div className="c-head">✎ Corrections</div>
       {corrections.map((c, i) => (
         <div className="c-item" key={i}>
           <div>
             <span className="orig">{c.original}</span>
             <span className="arrow">→</span>
             <span className="fixed">{c.corrected}</span>
-            <SpeakerButton text={c.corrected} title="讀出正確版本" />
+            <SpeakerButton text={c.corrected} title="Read the correction aloud" />
             <SaveButton text={c.corrected} kind="correction" />
           </div>
           {c.explanation && <div className="explain">{c.explanation}</div>}
@@ -41,10 +41,10 @@ export default function CorrectionCard({
 
       {showRewrite && (
         <div className="rewrite">
-          <div className="rewrite-head">✍️ 完整正確版本</div>
+          <div className="rewrite-head">✍️ Full corrected version</div>
           <div className="rewrite-body">
             <span className="rewrite-text">{rewrite}</span>
-            <SpeakerButton text={rewrite!} title="讀出完整正確版本" />
+            <SpeakerButton text={rewrite!} title="Read the full version aloud" />
             <SaveButton text={rewrite!} kind="rewrite" />
           </div>
         </div>

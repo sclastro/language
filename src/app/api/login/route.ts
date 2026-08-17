@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const ip = clientIp(request);
   if (!checkThrottle(ip)) {
     return NextResponse.json(
-      { error: "嘗試次數過多,請十分鐘後再試。" },
+      { error: "Too many attempts. Please try again in ten minutes." },
       { status: 429 }
     );
   }
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
   if (!ok) {
     noteFail(ip);
-    return NextResponse.json({ error: "密碼不正確。" }, { status: 401 });
+    return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
   attempts.delete(ip); // 成功登入 → 清除記錄
 

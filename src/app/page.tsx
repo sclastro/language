@@ -31,9 +31,9 @@ import { AVAILABLE_MODELS, CLIENT_DEFAULT_MODEL } from "@/lib/models";
 const SETTINGS_KEY = "english-tutor-settings-v1";
 
 const LEVELS: { value: Level; label: string }[] = [
-  { value: "beginner", label: "初級" },
-  { value: "intermediate", label: "中級" },
-  { value: "advanced", label: "高級" },
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
 ];
 
 type StreamEvent =
@@ -138,7 +138,7 @@ export default function Home() {
         word,
         sentence,
         loading: false,
-        error: e instanceof Error ? e.message : "查詢失敗",
+        error: e instanceof Error ? e.message : "Lookup failed",
       });
     }
   }
@@ -171,7 +171,7 @@ export default function Home() {
 
       if (!res.ok || !res.body) {
         const e = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(e.error || `伺服器回覆 ${res.status}`);
+        throw new Error(e.error || `Server responded ${res.status}`);
       }
 
       const reader = res.body.getReader();
@@ -222,7 +222,7 @@ export default function Home() {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "發生錯誤,請再試一次。");
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
       setStreamText("");
@@ -230,14 +230,14 @@ export default function Home() {
   }
 
   function clearConvo() {
-    if (!confirm("確定清除這段對話?")) return;
+    if (!confirm("Clear this conversation?")) return;
     updateActiveItems(() => []);
     setError(null);
   }
 
   function removeConvo() {
     if (!active) return;
-    if (!confirm(`確定刪除「${active.title}」?`)) return;
+    if (!confirm(`Delete "${active.title}"?`)) return;
     deleteConvo(active.id);
   }
 
@@ -251,14 +251,14 @@ export default function Home() {
   return (
     <div className="app">
       <header className="header">
-        <h1>英文對話練習 🗣️</h1>
+        <h1>English Tutor 🗣️</h1>
         {/* 分成兩組:手機上標題與導覽同一行,兩個下拉獨佔一行(見 globals.css 的
             @media 區塊)。合在一起的話,窄螢幕會把下拉擠到只剩幾個像素。 */}
         <div className="ctl-selects">
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as Level)}
-            aria-label="難度"
+            aria-label="Level"
           >
             {LEVELS.map((l) => (
               <option key={l.value} value={l.value}>
@@ -269,7 +269,7 @@ export default function Home() {
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            aria-label="模型"
+            aria-label="Model"
           >
             {AVAILABLE_MODELS.map((m) => (
               <option key={m} value={m}>
@@ -280,14 +280,14 @@ export default function Home() {
           </select>
         </div>
         <div className="ctl-nav">
-          <Link className="ghost-btn" href="/review" title="今日複習">
-            📅 複習{dueCount > 0 ? ` (${dueCount})` : ""}
+          <Link className="ghost-btn" href="/review" title="Today's review">
+            📅 Review{dueCount > 0 ? ` (${dueCount})` : ""}
           </Link>
-          <Link className="ghost-btn" href="/saved" title="我的收藏">
-            ★ 收藏{savedItems.length > 0 ? ` (${savedItems.length})` : ""}
+          <Link className="ghost-btn" href="/saved" title="Saved items">
+            ★ Saved{savedItems.length > 0 ? ` (${savedItems.length})` : ""}
           </Link>
           {gated && (
-            <button className="ghost-btn" onClick={logout} title="登出">
+            <button className="ghost-btn" onClick={logout} title="Log out">
               🔒
             </button>
           )}
@@ -299,7 +299,7 @@ export default function Home() {
           className="convo-select"
           value={active?.id ?? ""}
           onChange={(e) => setActive(e.target.value)}
-          aria-label="對話"
+          aria-label="Conversation"
         >
           {convosState.convos.map((c) => (
             <option key={c.id} value={c.id}>
@@ -310,8 +310,8 @@ export default function Home() {
         <select
           value={active?.scenario ?? "free"}
           onChange={(e) => active && setScenario(active.id, e.target.value as ScenarioId)}
-          aria-label="情境"
-          title="選擇情境,AI 會扮演該角色與你練習"
+          aria-label="Scenario"
+          title="Pick a scenario and the AI will play that role with you"
         >
           {SCENARIOS.map((s) => (
             <option key={s.id} value={s.id}>
@@ -319,13 +319,13 @@ export default function Home() {
             </option>
           ))}
         </select>
-        <button className="ghost-btn" onClick={() => newConvo(active?.scenario)} title="新增對話">
-          ＋ 新
+        <button className="ghost-btn" onClick={() => newConvo(active?.scenario)} title="New conversation">
+          ＋ New
         </button>
-        <button className="ghost-btn" onClick={clearConvo} title="清空內容">
-          清除
+        <button className="ghost-btn" onClick={clearConvo} title="Clear messages">
+          Clear
         </button>
-        <button className="ghost-btn" onClick={removeConvo} title="刪除此對話">
+        <button className="ghost-btn" onClick={removeConvo} title="Delete this conversation">
           🗑
         </button>
       </div>
@@ -333,12 +333,12 @@ export default function Home() {
       <div className="messages" ref={messagesRef}>
         {items.length === 0 && !streamText && (
           <div className="empty">
-            用英文輸入一句話,開始對話 👋
+            Type something in English to start 👋
             <br />
-            AI 會自然地回覆你,同時指出語法及用詞問題(以中文解釋)。
+            The AI replies naturally and points out grammar and word-choice issues.
             <br />
             <span className="empty-hint">
-              💡 點按 AI 回覆中不懂的字詞可查字典;選擇「🎭 情境」可進行角色扮演。
+              💡 Tap any word in a reply to look it up. Pick a 🎭 scenario for role-play.
             </span>
           </div>
         )}
@@ -361,7 +361,7 @@ export default function Home() {
                 <TappableText text={it.content} onWord={onWordTap} />
               </div>
               <div className="bubble-actions">
-                <SpeakerButton text={it.content} title="讀出 AI 回覆" />
+                <SpeakerButton text={it.content} title="Read the reply aloud" />
                 <SaveButton text={it.content} kind="reply" />
               </div>
             </div>
@@ -373,7 +373,7 @@ export default function Home() {
             <div className="bubble">{streamText}▍</div>
           </div>
         )}
-        {loading && !streamText && <div className="typing">AI 思考中…</div>}
+        {loading && !streamText && <div className="typing">AI is thinking…</div>}
       </div>
 
       {error && <div className="statusbar error">⚠️ {error}</div>}
@@ -385,8 +385,8 @@ export default function Home() {
             className={`mic ${recording ? "recording" : ""}`}
             onClick={recording ? stopRec : startRec}
             disabled={transcribing}
-            title={recording ? "停止錄音" : "按此說英文"}
-            aria-label={recording ? "停止錄音" : "錄音"}
+            title={recording ? "Stop recording" : "Tap to speak English"}
+            aria-label={recording ? "Stop recording" : "Record"}
           >
             {transcribing ? "…" : recording ? "⏹" : "🎤"}
           </button>
@@ -398,32 +398,32 @@ export default function Home() {
           onKeyDown={onKeyDown}
           placeholder={
             recording
-              ? "錄音中…按 ⏹ 停止"
+              ? "Recording… tap ⏹ to stop"
               : transcribing
-                ? "轉換文字中…"
-                : "用英文輸入…"
+                ? "Transcribing…"
+                : "Type in English…"
           }
-          title="Enter 送出,Shift+Enter 換行"
+          title="Enter to send, Shift+Enter for a new line"
           rows={1}
         />
         <button className="send" onClick={send} disabled={loading || !input.trim()}>
-          送出
+          Send
         </button>
       </div>
 
       <div className={`statusbar budget-${budgetLevel(usage)}`}>
         {/* sb-model / sb-month 於手機收起(頂部已顯示模型,本月數字非即時需要) */}
-        <span className="sb-model">模型:{model}</span>
+        <span className="sb-model">Model: {model}</span>
         <span>
-          今日 ~{usage.today.tokens.toLocaleString()} / {DAILY_BUDGET.toLocaleString()}
+          Today ~{usage.today.tokens.toLocaleString()} / {DAILY_BUDGET.toLocaleString()}
         </span>
-        <span className="sb-month">本月 ~{usage.month.tokens.toLocaleString()}</span>
+        <span className="sb-month">Month ~{usage.month.tokens.toLocaleString()}</span>
         <span>
           🔊 {usage.today.tts} · 🎤 {usage.today.stt}
         </span>
         {budgetLevel(usage) !== "ok" && (
           <span className="budget-note">
-            {budgetLevel(usage) === "over" ? "⚠️ 已超出預算" : "⚠️ 接近今日預算"}
+            {budgetLevel(usage) === "over" ? "⚠️ Over budget" : "⚠️ Near today's budget"}
           </span>
         )}
       </div>

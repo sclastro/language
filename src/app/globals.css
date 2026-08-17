@@ -482,6 +482,12 @@ input {
     gap: 6px;
     flex-wrap: nowrap;
   }
+  /* /saved 同 /review 用 .controls(冇 .ctl-* 分組)。h1 有 order,佢冇嘅話
+     預設 order:0 會排喺標題之前,變成按鈕喺上、標題喺下。 */
+  .header .controls {
+    order: 2;
+    gap: 6px;
+  }
   .header .ctl-selects {
     order: 3;
     width: 100%;
@@ -572,6 +578,11 @@ input {
   .statusbar.error {
     white-space: normal;
     flex-wrap: wrap;
+  }
+
+  /* 英文標籤比中文長,唔加 nowrap 就會斷成兩行,個掣變得又高又亂。 */
+  .saved-toolbar button {
+    white-space: nowrap;
   }
 }
 

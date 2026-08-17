@@ -19,10 +19,10 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) throw new Error(data.error || "登入失敗");
+      if (!res.ok || !data.ok) throw new Error(data.error || "Login failed");
       window.location.href = "/";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "登入失敗");
+      setError(err instanceof Error ? err.message : "Login failed");
       setBusy(false);
     }
   }
@@ -31,19 +31,19 @@ export default function LoginPage() {
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
         <div className="login-icon">🔒</div>
-        <h1>英文對話練習</h1>
-        <p className="login-sub">請輸入密碼</p>
+        <h1>English Tutor</h1>
+        <p className="login-sub">Enter your password</p>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="密碼"
+          placeholder="Password"
           autoFocus
           autoComplete="current-password"
         />
         {error && <div className="login-error">⚠️ {error}</div>}
         <button type="submit" disabled={busy || !password}>
-          {busy ? "登入中…" : "登入"}
+          {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
     </div>

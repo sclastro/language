@@ -7,7 +7,7 @@ type State = "idle" | "loading" | "playing" | "error";
 
 export default function SpeakerButton({
   text,
-  title = "讀出來",
+  title = "Read aloud",
 }: {
   text: string;
   title?: string;
