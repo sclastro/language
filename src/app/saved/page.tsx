@@ -56,6 +56,8 @@ export default function SavedPage() {
   const [syncState, setSyncState] = useState<"off" | "idle" | "syncing">("off");
   // 排序方向:false = 最新在前(預設),true = 最舊在前。記住用戶的選擇。
   const [oldestFirst, setOldestFirst] = useState(false);
+  // 長句默認剪到四行;撳一下就展開該項。
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const stopRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -160,22 +162,22 @@ export default function SavedPage() {
     download(buildBackupJson(), `saved-backup-${Date.now()}.json`, "application/json");
   }
 
-  /** 匯出對話成純文字:給人閱讀/列印,不是給程式讀的備份。 */
+  /** 匯出純文字:只有已改好的英文句子。 */
   function exportChatsText() {
-    const convos = getSyncableConvos(Infinity);
-    if (convos.length === 0) {
-      setError("No conversations to export yet.");
+    const text = convosToText(getSyncableConvos(Infinity));
+    // 有對話但一句都改好過,同樣要提示,唔好俾一個空檔案。
+    if (text.trim().length === 0) {
+      setError("Nothing to export yet — no corrected sentences found.");
       return;
     }
     const stamp = new Date().toISOString().slice(0, 10);
     download(
-      toTextFile(convosToText(convos)),
-      `english-tutor-chats-${stamp}.txt`,
+      toTextFile(text),
+      `english-tutor-sentences-${stamp}.txt`,
       "text/plain;charset=utf-8"
     );
-    setNote(
-      `Exported ${convos.length} conversation${convos.length === 1 ? "" : "s"} as text`
-    );
+    const lines = text.trim().split(/\n\n+/).length;
+    setNote(`Exported ${lines} corrected sentence${lines === 1 ? "" : "s"}`);
   }
 
   async function importBackup(e: React.ChangeEvent<HTMLInputElement>) {
@@ -204,6 +206,15 @@ export default function SavedPage() {
   const allSelected = items.length > 0 && selected.size === items.length;
   // 跟顯示次序,播放同匯出 MP3 的順序才符合預期。
   const selectedItems = view.filter((i) => selected.has(i.id));
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -313,7 +324,7 @@ export default function SavedPage() {
           <button
             className="ghost-btn"
             onClick={exportChatsText}
-            title="Download conversations as a readable text file"
+            title="Download your corrected sentences as plain text"
           >
             ⬇ Text
           </button>
@@ -403,7 +414,19 @@ export default function SavedPage() {
                   aria-label={`Select "${it.text.slice(0, 30)}"`}
                 />
                 <div className="saved-main">
-                  <div className="saved-text">{it.text}</div>
+                  <div
+                    className={`saved-text${
+                      it.text.length > 110 && !expanded.has(it.id) ? " clamped" : ""
+                    }${it.text.length > 110 ? " expandable" : ""}`}
+                    onClick={() => it.text.length > 110 && toggleExpand(it.id)}
+                  >
+                    {it.text}
+                  </div>
+                  {it.text.length > 110 && (
+                    <button className="saved-more" onClick={() => toggleExpand(it.id)}>
+                      {expanded.has(it.id) ? "Show less" : "Show more"}
+                    </button>
+                  )}
                   {it.kind === "vocab" && it.meaning && (
                     <div className="saved-vocab-meaning">
                       {it.meaning}
