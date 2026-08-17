@@ -16,6 +16,8 @@ export type TutorResponse = {
   corrections: Correction[];
   /** 用戶最新一句的完整正確／自然英文版本;無需修改則與原句相同。 */
   rewrite: string;
+  /** 模型輸出被 max_tokens 截斷,內容是搶救回來的(可能不齊全)。 */
+  truncated?: boolean;
 };
 
 /** 聊天訊息(前端與 API 之間傳遞的格式)。 */
