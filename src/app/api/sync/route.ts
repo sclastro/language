@@ -40,10 +40,16 @@ export async function GET() {
     // v1 儲存的是一個 array;v2 儲存 { items, tombstones }。兩種格式皆可讀取。
     const items = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
     const tombstones = Array.isArray(parsed) ? {} : (parsed?.tombstones ?? {});
+    // v3 起連對話一齊存
+    const convos = Array.isArray(parsed) ? [] : (parsed?.convos ?? []);
+    const convoTombstones = Array.isArray(parsed) ? {} : (parsed?.convoTombstones ?? {});
     return NextResponse.json({
       configured: true,
       items: Array.isArray(items) ? items : [],
       tombstones: tombstones && typeof tombstones === "object" ? tombstones : {},
+      convos: Array.isArray(convos) ? convos : [],
+      convoTombstones:
+        convoTombstones && typeof convoTombstones === "object" ? convoTombstones : {},
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to read from the cloud.";
@@ -59,12 +65,32 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       items?: unknown[];
       tombstones?: Record<string, number>;
+      convos?: unknown[];
+      convoTombstones?: Record<string, number>;
     };
     const items = Array.isArray(body.items) ? body.items : [];
     const tombstones =
       body.tombstones && typeof body.tombstones === "object" ? body.tombstones : {};
-    await kvCommand(["SET", SYNC_KEY, JSON.stringify({ items, tombstones })]);
-    return NextResponse.json({ ok: true, count: items.length });
+    const convos = Array.isArray(body.convos) ? body.convos : [];
+    const convoTombstones =
+      body.convoTombstones && typeof body.convoTombstones === "object"
+        ? body.convoTombstones
+        : {};
+
+    const payload = JSON.stringify({ items, tombstones, convos, convoTombstones });
+    // Upstash REST 對單一 command 有大小上限;寧願唔同步對話,都唔好成次同步失敗。
+    if (payload.length > 900_000) {
+      const trimmed = JSON.stringify({ items, tombstones, convos: [], convoTombstones });
+      await kvCommand(["SET", SYNC_KEY, trimmed]);
+      return NextResponse.json({
+        ok: true,
+        count: items.length,
+        convoCount: 0,
+        warning: "Conversations were too large to sync; saved items were synced.",
+      });
+    }
+    await kvCommand(["SET", SYNC_KEY, payload]);
+    return NextResponse.json({ ok: true, count: items.length, convoCount: convos.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to write to the cloud.";
     return NextResponse.json({ error: message }, { status: 502 });
