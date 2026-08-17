@@ -19,7 +19,7 @@ function safeEqual(a: string, b: string): boolean {
 
 export async function middleware(req: NextRequest) {
   const pw = process.env.APP_PASSWORD;
-  // 冇設定密碼 = 唔啟用保護。
+  // 未設定密碼 = 不啟用保護。
   if (!pw) return NextResponse.next();
 
   const cookie = req.cookies.get(AUTH_COOKIE)?.value ?? "";
@@ -39,7 +39,7 @@ export async function middleware(req: NextRequest) {
   return NextResponse.redirect(new URL("/login", req.url));
 }
 
-// 只保護頁面同貴嘅 API;登入/登出 API、靜態資源、PWA icon 唔喺度。
+// 只保護頁面及成本較高的 API;登入/登出 API、靜態資源、PWA icon 不在此列。
 export const config = {
   matcher: [
     "/",

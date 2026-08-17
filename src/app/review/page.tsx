@@ -6,7 +6,7 @@ import SpeakerButton from "@/components/SpeakerButton";
 import PronPractice from "@/components/PronPractice";
 import { dueItems, reviewItem, type SavedItem } from "@/lib/savedStore";
 
-/** 今日複習:SRS 到期嘅收藏,一張一張咁溫,記得/唔記得決定下次幾時再出。 */
+/** 今日複習:SRS 到期的收藏,逐張複習,記得/忘記決定下次出現的時間。 */
 export default function ReviewPage() {
   const [queue, setQueue] = useState<SavedItem[]>([]);
   const [idx, setIdx] = useState(0);
@@ -26,13 +26,13 @@ export default function ReviewPage() {
     reviewItem(current.id, remembered);
     setDone((d) => d + 1);
     setRevealed(false);
-    // 由現時嘅 queue 一次過計好「新隊列」同「下一張嘅位置」,避免兩次 setState 各自用
-    // 唔同步嘅長度去計位(舊做法會早一格跳返頭,打亂溫習次序)。
+    // 由目前的 queue 一次過算出「新隊列」及「下一張的位置」,避免兩次 setState 各自
+    // 依據不同步的長度計算(舊做法會提早一格跳回開頭,打亂複習次序)。
     const next = [...queue];
     const [item] = next.splice(idx, 1);
-    if (!remembered) next.push(item); // 唔記得:擺返隊尾,今次 session 再出一次
+    if (!remembered) next.push(item); // 忘記:移至隊尾,本次 session 會再出現一次
     setQueue(next);
-    // 抽走之後,同一個 idx 已經係下一張;去到尾就返轉頭。
+    // 抽走之後,同一個 idx 已經指向下一張;到達結尾則返回開頭。
     setIdx(idx >= next.length ? 0 : idx);
   }
 
@@ -57,15 +57,15 @@ export default function ReviewPage() {
           <div className="empty">
             {done > 0 ? (
               <>
-                🎉 今日複習完晒!溫咗 {done} 張卡。
+                🎉 今日已複習完畢!共完成 {done} 張卡。
                 <br />
-                聽日再嚟,間隔重複先至記得牢。
+                明天再來,間隔重複才能記得牢固。
               </>
             ) : (
               <>
-                今日冇嘢要複習 🎉
+                今日沒有需要複習的項目 🎉
                 <br />
-                去對話度收藏多啲句子/生字,呢度就會自動幫你排複習時間。
+                在對話中收藏更多句子或生字,系統就會自動為你安排複習時間。
               </>
             )}
           </div>
@@ -73,7 +73,7 @@ export default function ReviewPage() {
       ) : (
         <div className="messages review-wrap">
           <div className="review-progress">
-            剩返 {queue.length} 張 · 已溫 {done} 張
+            剩餘 {queue.length} 張 · 已完成 {done} 張
           </div>
 
           <div className="review-card">
@@ -108,7 +108,7 @@ export default function ReviewPage() {
 
             <div className="review-grade">
               <button className="grade-btn bad" onClick={() => grade(false)}>
-                ✗ 唔記得
+                ✗ 忘記了
               </button>
               <button className="grade-btn good" onClick={() => grade(true)}>
                 ✓ 記得

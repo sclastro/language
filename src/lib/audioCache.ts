@@ -2,8 +2,8 @@
 
 /**
  * TTS 音訊本機保存(IndexedDB):
- * 同一句話嘅語音只會生成一次,之後由本機讀返,離線都播到,亦唔再燒 points。
- * 每條 record: { text, blob, cdnUrl, savedAt } — cdnUrl 留返俾 MP3 匯出用。
+ * 同一句話的語音只會生成一次,之後由本機讀取,離線亦可播放,不再消耗 points。
+ * 每筆 record: { text, blob, cdnUrl, savedAt } — cdnUrl 保留供 MP3 匯出使用。
  */
 const DB_NAME = "english-tutor-audio";
 const STORE = "tts";
@@ -56,6 +56,6 @@ export async function putAudioRecord(text: string, blob: Blob, cdnUrl: string) {
       tx.onerror = () => resolve();
     });
   } catch {
-    /* 存唔到就算,下次再生成 */
+    /* 無法儲存亦無妨,下次重新生成 */
   }
 }

@@ -11,7 +11,7 @@ import type { ChatMessage, Level, TutorResponse } from "@/lib/types";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_HISTORY = 8; // 只保留最近幾條去慳 token
+const MAX_HISTORY = 8; // 只保留最近數條以節省 token
 const MAX_TOKENS = 600;
 const VALID_LEVELS: Level[] = ["beginner", "intermediate", "advanced"];
 
@@ -22,7 +22,7 @@ type Body = {
   scenario?: string;
 };
 
-/** 由模型回覆(可能夾住 markdown code fence)抽出 JSON 並穩健 parse。 */
+/** 由模型回覆(可能夾雜 markdown code fence)抽出 JSON 並穩健 parse。 */
 function parseTutorResponse(raw: string): TutorResponse {
   let text = raw.trim();
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -56,8 +56,8 @@ function parseTutorResponse(raw: string): TutorResponse {
 }
 
 /**
- * 由未完成嘅 JSON 串流入面,抽出 reply 欄位目前為止嘅內容(俾前端逐字顯示)。
- * 揾 `"reply":"` 之後嘅字串,處理跳脫字元,遇到未閂嘅引號就當「講到呢度」。
+ * 由尚未完成的 JSON 串流中,抽出 reply 欄位目前為止的內容(供前端逐字顯示)。
+ * 尋找 `"reply":"` 之後的字串,處理跳脫字元,遇到未閉合的引號即視為「目前到此為止」。
  */
 function extractPartialReply(full: string): string {
   const m = full.match(/"reply"\s*:\s*"/);
@@ -73,7 +73,7 @@ function extractPartialReply(full: string): string {
     if (ch === '"') break;
     seg += ch;
   }
-  // 尾巴可能斬咗一半 escape,試 parse,唔得就切一格再試
+  // 結尾可能截斷了一半的 escape,先嘗試 parse,失敗則再切一格重試
   for (let cut = 0; cut < 2; cut++) {
     try {
       return JSON.parse('"' + seg.slice(0, seg.length - cut) + '"') as string;
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
   const messages = Array.isArray(body.messages) ? body.messages : [];
   if (messages.length === 0) {
-    return NextResponse.json({ error: "冇對話內容。" }, { status: 400 });
+    return NextResponse.json({ error: "未提供對話內容。" }, { status: 400 });
   }
 
   const level: Level = VALID_LEVELS.includes(body.level as Level)
@@ -111,8 +111,8 @@ export async function POST(request: Request) {
     ...trimmed.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  // 早啲攞 client:冇 key 之類嘅設定問題要回一個清楚嘅 JSON 錯誤,
-  // 唔好留返喺 stream 入面爆(咁客戶端只會見到斷線,查極都唔知咩事)。
+  // 提早取得 client:缺少 key 之類的設定問題要回傳清楚的 JSON 錯誤,
+  // 不要留在 stream 內才拋出(否則客戶端只會見到斷線,無從查起)。
   let client: ReturnType<typeof getPoeClient>;
   try {
     client = getPoeClient();
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
           }
         }
       } catch {
-        // 串流失敗(有啲 model/情況唔支援)→ 靜靜地退返一次過模式
+        // 串流失敗(部分 model/情況不支援)→ 靜默退回一次過模式
         try {
           const completion = await client.chat.completions.create({
             model,
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       }
 
       const tutor = parseTutorResponse(full);
-      // 估算 token(串流唔一定回 usage):字元數 / 4
+      // 估算 token(串流不一定回傳 usage):字元數 / 4
       const promptChars = chatMessages.reduce((a, m) => a + m.content.length, 0);
       const usage = {
         promptTokens: Math.round(promptChars / 4),

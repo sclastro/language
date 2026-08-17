@@ -4,7 +4,7 @@ import { getPoeClient, DEFAULT_MODEL, friendlyError } from "@/lib/poe";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-/** 生字查詢:俾個字 + 佢出現嘅句子,回繁中解釋 + 一句新例句。 */
+/** 生字查詢:提供字詞及其所在句子,回傳繁中解釋 + 一句新例句。 */
 export async function POST(request: Request) {
   let word = "";
   let sentence = "";
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
-  if (!word) return NextResponse.json({ error: "冇字可以查。" }, { status: 400 });
+  if (!word) return NextResponse.json({ error: "未提供要查詢的字詞。" }, { status: 400 });
 
   try {
     const client = getPoeClient();
@@ -28,8 +28,9 @@ export async function POST(request: Request) {
           content: [
             `Define the English word "${word}"`,
             sentence ? `as used in this sentence: "${sentence}".` : ".",
-            "For a Cantonese-speaking learner. Respond with ONLY JSON:",
+            "For a Chinese-speaking learner. Respond with ONLY JSON:",
             '{"meaning": "簡短繁體中文解釋(包詞性)", "example": "one short natural English example sentence"}',
+            "The meaning must be in standard written Chinese (書面語), NOT Cantonese colloquial.",
           ].join(" "),
         },
       ],

@@ -14,12 +14,12 @@ export default function CorrectionCard({
   if (corrections.length === 0) {
     return (
       <div className="correction ok">
-        <div className="c-head">✓ 冇問題,寫得好自然!</div>
+        <div className="c-head">✓ 沒有問題,寫得很自然!</div>
       </div>
     );
   }
 
-  // 完整正確版本:有 rewrite 而且同原句唔一樣先顯示。
+  // 完整正確版本:有 rewrite 且與原句不同時才顯示。
   const showRewrite =
     !!rewrite && rewrite.trim() !== "" && rewrite.trim() !== (original ?? "").trim();
 

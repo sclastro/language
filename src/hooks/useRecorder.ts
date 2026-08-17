@@ -30,7 +30,7 @@ type Options = {
 
 /**
  * 麥克風錄音 → 送去 /api/stt(whisper)→ 回文字。
- * 跨平台(iOS/Android/desktop 都行,因為轉錄喺 server 端做,唔靠瀏覽器語音)。
+ * 跨平台(iOS/Android/desktop 均可,因為轉錄在 server 端進行,不依賴瀏覽器語音)。
  */
 export function useRecorder({ onResult, onError }: Options) {
   const [recording, setRecording] = useState(false);
@@ -46,7 +46,7 @@ export function useRecorder({ onResult, onError }: Options) {
 
   const start = useCallback(async () => {
     if (!supported) {
-      onError?.("呢個瀏覽器唔支援錄音。");
+      onError?.("此瀏覽器不支援錄音。");
       return;
     }
     try {
@@ -78,7 +78,7 @@ export function useRecorder({ onResult, onError }: Options) {
           if (!res.ok) throw new Error(data.error || "轉錄失敗");
           addUsage({ stt: 1 });
           if (data.text) onResult(data.text);
-          else onError?.("聽唔到內容,再試一次。");
+          else onError?.("聽不到內容,請再試一次。");
         } catch (e) {
           onError?.(e instanceof Error ? e.message : "轉錄失敗。");
         } finally {
@@ -90,7 +90,7 @@ export function useRecorder({ onResult, onError }: Options) {
       recorderRef.current = recorder;
       setRecording(true);
     } catch {
-      onError?.("攞唔到麥克風權限。");
+      onError?.("無法取得麥克風權限。");
     }
   }, [supported, onResult, onError]);
 

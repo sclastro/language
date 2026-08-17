@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import { getPoeClient, DEFAULT_STT_MODEL, friendlyError } from "@/lib/poe";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // Vercel:俾轉錄多啲時間 headroom
+export const maxDuration = 60; // Vercel:為轉錄預留較多時間
 
-// 限制音訊大小(base64 字元數)。Vercel serverless 嘅 request body 上限係 4.5MB,
-// 所以我哋要對齊佢(留少少 header 空間),唔好等平台先擋 —— 咁用戶至少見到人話錯誤。
+// 限制音訊大小(base64 字元數)。Vercel serverless 的 request body 上限為 4.5MB,
+// 因此需與之對齊(預留少許 header 空間),不要等平台攔截 —— 這樣用戶至少能看到清楚的錯誤訊息。
 const MAX_DATA_URL_LEN = 4_200_000;
 
 /**
- * STT:收前端錄音(base64 data URL),交俾 Poe 嘅 whisper 轉做文字。
- * 用 OpenAI-compatible 嘅 `file` content part(唯一收 audio 嘅方式)。
+ * STT:接收前端錄音(base64 data URL),交給 Poe 的 whisper 轉成文字。
+ * 使用 OpenAI-compatible 的 `file` content part(唯一可傳送 audio 的方式)。
  */
 export async function POST(request: Request) {
   let dataUrl: string;
@@ -28,13 +28,13 @@ export async function POST(request: Request) {
 
   if (!dataUrl.startsWith("data:")) {
     return NextResponse.json(
-      { error: "冇有效嘅音訊資料。" },
+      { error: "沒有有效的音訊資料。" },
       { status: 400 }
     );
   }
   if (dataUrl.length > MAX_DATA_URL_LEN) {
     return NextResponse.json(
-      { error: "錄音太長,請講短啲再試。" },
+      { error: "錄音過長,請縮短內容再試。" },
       { status: 413 }
     );
   }

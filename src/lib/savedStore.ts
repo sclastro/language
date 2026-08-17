@@ -8,7 +8,7 @@ export type SavedItem = {
   text: string;
   kind: SavedKind;
   savedAt: number; // Date.now()
-  srs?: SrsState; // 間隔重複狀態(冇 = 未複習過,即到期)
+  srs?: SrsState; // 間隔重複狀態(未設定 = 未複習過,即到期)
   meaning?: string; // 生字:繁中解釋
   example?: string; // 生字:例句
 };
@@ -16,7 +16,7 @@ export type SavedItem = {
 const KEY = "english-tutor-saved-v1";
 const TOMB_KEY = "english-tutor-deleted-v1";
 
-/** 刪除記錄(tombstone):text → 刪除時間。冇佢嘅話同步會將刪咗嘅嘢拉返落嚟。 */
+/** 刪除記錄(tombstone):text → 刪除時間。缺少它的話,同步會把已刪除的項目重新拉回來。 */
 export type Tombstones = Record<string, number>;
 
 let items: SavedItem[] = [];
@@ -25,7 +25,7 @@ let loaded = false;
 const listeners = new Set<() => void>();
 const serverSnapshot: SavedItem[] = [];
 
-/** 同一句可以喺唔同類別各存一份(例如「更正」同「生字」);同類別先當重複。 */
+/** 同一句可在不同類別各存一份(例如「更正」與「生字」);同類別才視為重複。 */
 function dedupKey(text: string, kind: SavedKind): string {
   return `${kind} ${text.trim()}`;
 }
@@ -126,7 +126,7 @@ export function addVocab(word: string, meaning: string, example: string) {
   emit();
 }
 
-/** 今日到期要複習嘅項目(由最早到期排先)。 */
+/** 今日到期需複習的項目(依到期時間由早至遲排序)。 */
 export function dueItems(now = Date.now()): SavedItem[] {
   load();
   return items
@@ -134,7 +134,7 @@ export function dueItems(now = Date.now()): SavedItem[] {
     .sort((a, b) => (a.srs?.due ?? a.savedAt) - (b.srs?.due ?? b.savedAt));
 }
 
-/** 複習一項:記得/唔記得 → 更新 SRS 排程。 */
+/** 複習一項:記得/忘記 → 更新 SRS 排程。 */
 export function reviewItem(id: string, remembered: boolean) {
   load();
   items = items.map((i) =>
@@ -146,7 +146,7 @@ export function reviewItem(id: string, remembered: boolean) {
   emit();
 }
 
-/** 用喺雲端同步:整份取代(已喺外面 merge 好)。 */
+/** 用於雲端同步:整份取代(已在外部完成 merge)。 */
 export function replaceAll(next: SavedItem[]) {
   load();
   items = [...next].sort((a, b) => b.savedAt - a.savedAt);
@@ -154,16 +154,16 @@ export function replaceAll(next: SavedItem[]) {
   emit();
 }
 
-/** 攞成份清單(俾同步用)。 */
+/** 取得完整清單(供同步使用)。 */
 export function getAllSaved(): SavedItem[] {
   load();
   return items;
 }
 
 /**
- * 合併兩份收藏(同類別同文字當同一項):保留複習進度較深/較新嗰個,
- * 並保住 meaning/example。`tombs` 入面(刪除時間遲過該項 savedAt)嘅會剔走,
- * 咁刪咗嘅嘢先唔會由雲端翻生。
+ * 合併兩份收藏(同類別且同文字視為同一項):保留複習進度較深/較新的一個,
+ * 並保住 meaning/example。`tombs` 中(刪除時間晚於該項 savedAt)的項目會被剔除,
+ * 這樣已刪除的項目才不會由雲端復原。
  */
 export function mergeSaved(
   a: SavedItem[],
@@ -188,7 +188,7 @@ export function mergeSaved(
     byKey.set(key, {
       ...pick,
       kind,
-      // 補返另一邊有、自己冇嘅資料,唔好掉失
+      // 補回另一邊有、自己沒有的資料,避免遺失
       meaning: pick.meaning ?? other.meaning,
       example: pick.example ?? other.example,
       srs: pick.srs ?? other.srs,
@@ -202,13 +202,13 @@ export function mergeSaved(
     .sort((x, y) => y.savedAt - x.savedAt);
 }
 
-/** 攞刪除記錄(俾同步一齊上傳)。 */
+/** 取得刪除記錄(供同步一併上傳)。 */
 export function getTombstones(): Tombstones {
   load();
   return tombstones;
 }
 
-/** 合併遠端嘅刪除記錄(每個 key 取最遲嗰個時間)。 */
+/** 合併遠端的刪除記錄(每個 key 取最晚的時間)。 */
 export function mergeTombstones(remote: Tombstones | undefined) {
   load();
   if (!remote) return;
@@ -222,7 +222,7 @@ function isKind(k: unknown): k is SavedKind {
   return k === "correction" || k === "rewrite" || k === "reply" || k === "vocab";
 }
 
-/** 匯出成 JSON 字串(俾用戶備份落手機);連刪除記錄一齊帶走。 */
+/** 匯出成 JSON 字串(供用戶備份至手機);連同刪除記錄一併帶走。 */
 export function exportSavedJson(): string {
   load();
   return JSON.stringify(
@@ -233,9 +233,9 @@ export function exportSavedJson(): string {
 }
 
 /**
- * 由備份匯入,同類別同文字去重;回傳實際新增咗幾多項。
+ * 由備份匯入,同類別且同文字者去重;回傳實際新增的項目數。
  * ⚠️ 一定要保住 srs(複習進度)同 meaning/example(生字解釋),
- * 唔係還原之後生字簿就冇晒解釋、SRS 歸零。
+ * 否則還原之後生字簿會失去所有解釋,SRS 進度亦會歸零。
  */
 export function importSavedItems(incoming: unknown): number {
   load();
@@ -252,7 +252,7 @@ export function importSavedItems(incoming: unknown): number {
     const key = dedupKey(t, kind);
     if (seen.has(key)) continue;
     seen.add(key);
-    delete tombstones[key]; // 明確匯入 → 蓋過舊嘅刪除記錄
+    delete tombstones[key]; // 明確匯入 → 覆蓋舊的刪除記錄
     merged.push({
       id: newId(),
       text: t,
@@ -273,14 +273,14 @@ export function importSavedItems(incoming: unknown): number {
   return added;
 }
 
-/** 叫瀏覽器將本站儲存設為「持久」,減低被自動清走嘅機會。 */
+/** 要求瀏覽器將本站儲存設為「持久」,降低被自動清除的機會。 */
 export async function requestPersistentStorage() {
   try {
     if (typeof navigator !== "undefined" && navigator.storage?.persist) {
       await navigator.storage.persist();
     }
   } catch {
-    /* 唔支援就算 */
+    /* 不支援則略過 */
   }
 }
 

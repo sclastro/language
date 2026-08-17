@@ -32,7 +32,7 @@ export default function LoginPage() {
       <form className="login-card" onSubmit={submit}>
         <div className="login-icon">🔒</div>
         <h1>英文對話練習</h1>
-        <p className="login-sub">輸入密碼先可以使用</p>
+        <p className="login-sub">請輸入密碼</p>
         <input
           type="password"
           value={password}
@@ -43,7 +43,7 @@ export default function LoginPage() {
         />
         {error && <div className="login-error">⚠️ {error}</div>}
         <button type="submit" disabled={busy || !password}>
-          {busy ? "登入緊…" : "登入"}
+          {busy ? "登入中…" : "登入"}
         </button>
       </form>
     </div>

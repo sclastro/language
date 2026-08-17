@@ -5,9 +5,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * 未快取嘅句子要即場生成語音(每句約 3–10 秒),但 serverless 只有 60 秒。
- * 所以:① 限制句數 ② 併發生成 ③ 留安全時間,夠鐘就唔再開新嘅,
- *       ④ 唔好靜靜跳過失敗嘅句子,要話返俾用戶知。
+ * 未快取的句子需即場生成語音(每句約 3–10 秒),但 serverless 只有 60 秒。
+ * 因此:① 限制句數 ② 併發生成 ③ 預留安全時間,時限將至便不再開新工作,
+ *       ④ 不可靜默跳過失敗的句子,必須告知用戶。
  */
 const MAX_ITEMS = 30;
 const CONCURRENCY = 4;
@@ -15,7 +15,7 @@ const TIME_BUDGET_MS = 45_000;
 
 type InItem = { text?: string; url?: string };
 
-/** 去掉 MP3 頭尾嘅 ID3 tag,咁多段 MP3 幀先可以乾淨咁串埋一齊。 */
+/** 去除 MP3 頭尾的 ID3 tag,多段 MP3 幀才能乾淨地串接在一起。 */
 function stripId3(buf: Buffer): Buffer {
   let b = buf;
   // 去掉開頭 ID3v2("ID3" + 6 bytes header,size 係 synchsafe integer)
@@ -46,7 +46,7 @@ async function itemToMp3(
   if (!text) return null;
 
   let url = item.url;
-  // 冇 cache 過嘅 URL 就即刻生成(會用 points)。
+  // 未快取過的 URL 需即時生成(會消耗 points)。
   if (!url || !/^https?:\/\//.test(url)) {
     const c = await client.chat.completions.create({
       model: DEFAULT_TTS_MODEL,
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
   if (items.length === 0) {
-    return NextResponse.json({ error: "冇揀到任何句子。" }, { status: 400 });
+    return NextResponse.json({ error: "未選取任何句子。" }, { status: 400 });
   }
 
   try {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     const parts = results.filter((b): b is Buffer => b !== null);
     if (parts.length === 0) {
       return NextResponse.json(
-        { error: "生成音訊失敗,一句都做唔到。請試少幾句。" },
+        { error: "音訊生成失敗,一句都未能完成。請減少句數再試。" },
         { status: 502 }
       );
     }
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
         "Content-Type": "audio/mpeg",
         "Content-Disposition": `attachment; filename="review-${Date.now()}.mp3"`,
         "Cache-Control": "no-store",
-        // 前端睇呢兩個 header 就知有冇漏,唔會靜靜收貨。
+        // 前端檢查這兩個 header 即知是否有遺漏,不會不知情地收下短檔。
         "x-included": String(parts.length),
         "x-missing": String(missing),
         "x-timed-out": String(timedOut),

@@ -1,11 +1,11 @@
 /**
- * 發音練習評分:將你讀出嚟(STT 轉錄)嘅字,同目標句逐字比對。
- * 用 LCS 對齊,綠色 = 讀啱,紅色 = 漏咗/讀錯。純本地計算,唔使 AI。
+ * 發音練習評分:將你朗讀的內容(經 STT 轉錄)與目標句逐字比對。
+ * 以 LCS 對齊,綠色 = 讀對,紅色 = 遺漏/讀錯。純本地計算,不需 AI。
  */
 export type PronWord = { word: string; ok: boolean };
 export type PronResult = { words: PronWord[]; score: number; heard: string };
 
-/** 將一個顯示用嘅字,轉成 0 個或多個比對用 token(例如 "well-known" → ["well","known"])。 */
+/** 將一個顯示用的字,轉成 0 個或多個比對用 token(例如 "well-known" → ["well","known"])。 */
 function tokenize(word: string): string[] {
   return word
     .toLowerCase()
@@ -33,7 +33,7 @@ export function scorePronunciation(target: string, heard: string): PronResult {
       dp[i][j] = t[i] === h[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
   }
-  // 回溯,標記 target 每個字有冇 match
+  // 回溯,標記 target 每個字是否有 match
   const matched = new Array<boolean>(n).fill(false);
   let i = 0;
   let j = 0;
@@ -46,15 +46,15 @@ export function scorePronunciation(target: string, heard: string): PronResult {
     else j++;
   }
 
-  // 將 token 層面嘅標記,對應返顯示用嘅原字。
+  // 將 token 層面的標記,對應回顯示用的原字。
   // ⚠️ 一個顯示字可以拆成多過一個 token(如 "well-known"),所以要用實際 token 數行位,
-  //    唔可以每個字加一 —— 否則之後所有字嘅紅綠都會錯位。
+  //    不可每個字加一 —— 否則之後所有字的紅綠標示都會錯位。
   const words: PronWord[] = [];
   let k = 0;
   for (const w of targetWords) {
     const count = tokenize(w).length;
     if (count === 0) {
-      // 純標點(例如單獨一個 "—"),唔計分
+      // 純標點(例如單獨一個 "—"),不計分
       words.push({ word: w, ok: true });
       continue;
     }

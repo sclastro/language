@@ -59,12 +59,12 @@ export type UsageSummary = { today: DayUsage; month: DayUsage };
 
 /**
  * Poe 訂閱大約 1,000,000 points/月。呢度用 token 做粗略代理去提個醒,
- * 唔係精準計費 —— 唔同 model 每個 token 嘅 points 差好遠。
+ * 並非精準計費 —— 不同 model 每個 token 所耗的 points 差異很大。
  */
 export const MONTHLY_BUDGET = 1_000_000;
 export const DAILY_BUDGET = Math.round(MONTHLY_BUDGET / 30);
 
-/** 回 0–1+ 嘅使用比例,俾 UI 決定幾時變黃/變紅。 */
+/** 回傳 0–1+ 的使用比例,供 UI 決定何時轉黃/轉紅。 */
 export function budgetLevel(s: UsageSummary): "ok" | "warn" | "over" {
   const dayRatio = s.today.tokens / DAILY_BUDGET;
   const monthRatio = s.month.tokens / MONTHLY_BUDGET;

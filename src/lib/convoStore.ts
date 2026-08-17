@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import type { Correction } from "./types";
 import type { ScenarioId } from "./scenarios";
 
-/** 一格對話:用戶嗰句會夾埋 AI 俾嘅糾正。 */
+/** 一則對話:用戶的句子會附帶 AI 提供的糾正。 */
 export type UserItem = {
   kind: "user";
   content: string;
@@ -130,7 +130,7 @@ export function setScenario(id: string, scenario: ScenarioId) {
   }
 }
 
-/** 更新活躍對話嘅訊息(updater 收現有 items 回新 items)。 */
+/** 更新使用中對話的訊息(updater 接收現有 items,回傳新 items)。 */
 export function updateActiveItems(updater: (items: ChatItem[]) => ChatItem[]) {
   const s = load();
   const c = s.convos.find((x) => x.id === s.activeId);

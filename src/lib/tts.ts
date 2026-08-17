@@ -4,15 +4,15 @@ import { getAudioRecord, putAudioRecord } from "./audioCache";
 import { addUsage } from "./usage";
 
 /**
- * TTS 三層快取:記憶體 → IndexedDB(本機永久)→ 網絡(先至燒 points)。
- * 回傳可以直接俾 <audio> 播嘅 object URL。
+ * TTS 三層快取:記憶體 → IndexedDB(本機永久)→ 網絡(最後才消耗 points)。
+ * 回傳可直接交給 <audio> 播放的 object URL。
  */
 const memUrl = new Map<string, string>(); // text -> object URL
 const memCdn = new Map<string, string>(); // text -> poecdn URL(匯出用)
 
 /**
- * 全 app 得一個「正在播放」嘅音訊 —— 撳第二個喇叭會停低前一個,
- * 唔會兩句聲疊住一齊播。
+ * 全 app 只有一個「正在播放」的音訊 —— 按下第二個喇叭會停止前一個,
+ * 不會兩段聲音重疊播放。
  */
 let currentAudio: HTMLAudioElement | null = null;
 
@@ -80,6 +80,6 @@ export async function fetchTtsUrl(text: string): Promise<string> {
   const obj = URL.createObjectURL(blob);
   memUrl.set(key, obj);
   if (cdnUrl) memCdn.set(key, cdnUrl);
-  putAudioRecord(key, blob, cdnUrl); // 背景寫入,唔阻播放
+  putAudioRecord(key, blob, cdnUrl); // 背景寫入,不阻礙播放
   return obj;
 }

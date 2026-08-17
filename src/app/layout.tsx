@@ -4,7 +4,7 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "英文對話練習 · English Tutor",
-  description: "同 AI 用英文傾偈,即時糾正語法同用詞。",
+  description: "與 AI 用英文對話,即時糾正語法及用詞。",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
