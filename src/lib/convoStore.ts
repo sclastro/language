@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import type { Correction } from "./types";
 import type { ScenarioId } from "./scenarios";
+import { parseTutorResponse } from "./tutorJson";
 
 /** 一則對話:用戶的句子會附帶 AI 提供的糾正。 */
 export type UserItem = {
@@ -61,7 +62,11 @@ function load(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       state = JSON.parse(raw) as State;
-      if (state.convos.length > 0) return state;
+      if (state.convos.length > 0) {
+        // 修復舊資料(截斷的原始 JSON、中文標題),有改動就寫返落 localStorage
+        if (migrateConvos(state.convos) > 0) persist();
+        return state;
+      }
     }
   } catch {
     /* fallthrough */
@@ -83,6 +88,61 @@ function load(): State {
   state = { convos: [first], activeId: first.id };
   persist();
   return state;
+}
+
+/** 舊版自動命名用的中文標題(介面已全面英文化)。 */
+const LEGACY_TITLE = "新對話";
+
+function looksLikeTutorJson(text: string): boolean {
+  const t = text.trimStart();
+  return t.startsWith("{") && /"reply"\s*:/.test(t);
+}
+
+/**
+ * 一次性修復已經存落 localStorage 的舊資料:
+ *
+ *  ① 輸出被 max_tokens 截斷那陣,原始 JSON 曾經被當成 AI 訊息內容儲存起來。
+ *     修正只防止新訊息出事,救不了已經存起來的,所以喺這裡搶救:抽出 reply 做內容,
+ *     並把當時漏掉的糾正/完整正確版本補回上一句用戶訊息。
+ *  ② 舊對話的標題仍是中文「新對話」;有內容就改用首句命名,否則改為 "New chat"。
+ *
+ * 修好之後內容已經唔再似 JSON,所以重複執行係安全的(idempotent)。
+ * 回傳修改過的項目數,0 就代表唔需要 persist。
+ */
+export function migrateConvos(convos: Convo[]): number {
+  let changed = 0;
+
+  for (const c of convos) {
+    if (!Array.isArray(c.items)) continue;
+
+    for (let i = 0; i < c.items.length; i++) {
+      const it = c.items[i];
+      if (it.kind !== "assistant" || !looksLikeTutorJson(it.content)) continue;
+
+      const salvaged = parseTutorResponse(it.content);
+      if (!salvaged.reply) continue; // 救唔到就原封不動,唔好變成空白訊息
+
+      it.content = salvaged.reply;
+      changed++;
+
+      // 把當時漏掉的糾正補回最近一句用戶訊息(該句本身冇糾正才補)
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = c.items[j];
+        if (prev.kind !== "user") continue;
+        if (salvaged.corrections.length > 0 && !prev.corrections?.length) {
+          prev.corrections = salvaged.corrections;
+        }
+        if (salvaged.rewrite && !prev.rewrite) prev.rewrite = salvaged.rewrite;
+        break;
+      }
+    }
+
+    if (c.title === LEGACY_TITLE) {
+      c.title = titleFrom(c.items);
+      changed++;
+    }
+  }
+  return changed;
 }
 
 function titleFrom(items: ChatItem[]): string {
@@ -227,6 +287,7 @@ export function mergeInConvos(incoming: unknown): number {
   const s = load();
   const arr = Array.isArray(incoming) ? incoming.filter(isConvo) : [];
 
+  migrateConvos(arr); // 另一部機可能仍未修復過
   const before = new Map(s.convos.map((c) => [c.id, c.updatedAt]));
   const merged = mergeConvos(s.convos, arr, convoTombs);
 
