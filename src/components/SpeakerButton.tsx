@@ -15,7 +15,7 @@ export default function SpeakerButton({
   const [state, setState] = useState<State>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 離開頁面/組件時停低,唔好有把聲繼續播落去。
+  // 離開頁面/組件時停止,避免聲音繼續播放。
   useEffect(() => {
     const audio = audioRef.current;
     return () => {
@@ -31,7 +31,7 @@ export default function SpeakerButton({
   async function play() {
     if (state === "loading") return;
 
-    // 已經喺度播 → 停。
+    // 正在播放 → 停止。
     if (state === "playing" && audioRef.current) {
       stopCurrent();
       setState("idle");
@@ -45,7 +45,7 @@ export default function SpeakerButton({
       audioRef.current = audio;
       audio.onended = () => setState("idle");
       audio.onerror = () => setState("error");
-      // 俾人撳第二個喇叭而停低時,呢個掣個 icon 都要跟住還原。
+      // 被其他喇叭按鈕搶播而停止時,本按鈕的圖示亦需一併還原。
       audio.onpause = () => setState((s) => (s === "playing" ? "idle" : s));
       setState("playing");
       await playExclusive(audio);

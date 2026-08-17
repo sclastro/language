@@ -1,4 +1,4 @@
-/** 情境對話(client-safe 清單;prompt 指示喺 server 端 prompt.ts 用)。 */
+/** 情境對話(client-safe 清單;prompt 指示於 server 端 prompt.ts 使用)。 */
 export type ScenarioId =
   | "free"
   | "interview"
@@ -8,7 +8,7 @@ export type ScenarioId =
   | "travel";
 
 export const SCENARIOS: { id: ScenarioId; label: string; brief: string }[] = [
-  { id: "free", label: "自由傾偈", brief: "" },
+  { id: "free", label: "自由對話", brief: "" },
   {
     id: "interview",
     label: "見工面試",
@@ -17,7 +17,7 @@ export const SCENARIOS: { id: ScenarioId; label: string; brief: string }[] = [
   },
   {
     id: "doctor",
-    label: "睇醫生",
+    label: "看醫生",
     brief:
       "You are a doctor at a clinic. The learner is your patient. Ask about symptoms, give simple advice, arrange follow-up. Stay in character.",
   },

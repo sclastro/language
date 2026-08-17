@@ -10,8 +10,8 @@ function token(pw: string): string {
 
 /**
  * 簡單防爆破:同一 IP 連續打錯就開始限速。
- * 存喺記憶體(serverless 有多個 instance,擋唔到有決心嘅攻擊),
- * 但足以令自動化猜密碼變得唔化算。
+ * 存於記憶體(serverless 有多個 instance,擋不住有決心的攻擊),
+ * 但足以令自動化猜密碼變得不划算。
  */
 const MAX_FAILS = 8;
 const WINDOW_MS = 10 * 60 * 1000;
@@ -44,13 +44,13 @@ function noteFail(ip: string) {
 
 export async function POST(request: Request) {
   const pw = process.env.APP_PASSWORD;
-  // 冇設定密碼 = 唔啟用保護(例如本機開發)。
+  // 未設定密碼 = 不啟用保護(例如本機開發)。
   if (!pw) return NextResponse.json({ ok: true, disabled: true });
 
   const ip = clientIp(request);
   if (!checkThrottle(ip)) {
     return NextResponse.json(
-      { error: "試得太多次喇,請等十分鐘再試。" },
+      { error: "嘗試次數過多,請十分鐘後再試。" },
       { status: 429 }
     );
   }
@@ -69,9 +69,9 @@ export async function POST(request: Request) {
     crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
   if (!ok) {
     noteFail(ip);
-    return NextResponse.json({ error: "密碼唔啱。" }, { status: 401 });
+    return NextResponse.json({ error: "密碼不正確。" }, { status: 401 });
   }
-  attempts.delete(ip); // 成功登入 → 清走記錄
+  attempts.delete(ip); // 成功登入 → 清除記錄
 
   const res = NextResponse.json({ ok: true });
   const secure = process.env.NODE_ENV === "production";

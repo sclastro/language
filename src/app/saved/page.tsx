@@ -65,7 +65,7 @@ export default function SavedPage() {
         return;
       }
       if (data.error) throw new Error(data.error);
-      // 先併埋兩邊嘅刪除記錄,再 merge —— 咁本機刪咗嘅嘢唔會由雲端翻生。
+      // 先合併兩邊的刪除記錄,再 merge —— 這樣本機刪除的項目不會由雲端復原。
       mergeTombstones(data.tombstones);
       const tombs = getTombstones();
       const merged = mergeSaved(getAllSaved(), data.items ?? [], tombs);
@@ -112,9 +112,9 @@ export default function SavedPage() {
       const arr = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
       if (!Array.isArray(data) && data?.tombstones) mergeTombstones(data.tombstones);
       const n = importSavedItems(arr);
-      setNote(n > 0 ? `匯入咗 ${n} 句新收藏` : "冇新收藏可以匯入(已存在)");
+      setNote(n > 0 ? `已匯入 ${n} 句新收藏` : "沒有新收藏可匯入(項目已存在)");
     } catch {
-      setError("匯入失敗:檔案格式唔啱");
+      setError("匯入失敗:檔案格式不正確");
     }
   }
 
@@ -150,7 +150,7 @@ export default function SavedPage() {
           a.play().catch(() => resolve());
         });
       } catch {
-        /* 跳過壞嘅一句 */
+        /* 跳過無法處理的句子 */
       }
     }
     audioRef.current = null;
@@ -199,9 +199,9 @@ export default function SavedPage() {
       URL.revokeObjectURL(url);
       if (missing > 0) {
         setError(
-          `⚠️ 個 MP3 只有 ${included} 句,有 ${missing} 句做唔切${
-            timedOut ? "(時間唔夠)" : ""
-          }。可以分批揀少幾句再匯出。`
+          `⚠️ MP3 只包含 ${included} 句,有 ${missing} 句未能生成${
+            timedOut ? "(時間不足)" : ""
+          }。可分批選取較少句子再匯出。`
         );
       } else {
         setNote(`已下載 MP3(${included} 句)`);
@@ -223,9 +223,9 @@ export default function SavedPage() {
               className="ghost-btn"
               onClick={() => doSync(true)}
               disabled={syncState === "syncing"}
-              title="同雲端同步"
+              title="與雲端同步"
             >
-              {syncState === "syncing" ? "☁ 同步緊…" : "☁ 同步"}
+              {syncState === "syncing" ? "☁ 同步中…" : "☁ 同步"}
             </button>
           )}
           <Link className="ghost-btn" href="/review" title="今日複習">
@@ -265,7 +265,7 @@ export default function SavedPage() {
           <div className="empty">
             仲未有收藏 😌
             <br />
-            喺對話度撳句子旁邊嘅 ☆,就會記低喺呢度俾你日後複習。
+            在對話中點按句子旁的 ☆,即可儲存於此供日後複習。
           </div>
         </div>
       ) : (
@@ -306,7 +306,7 @@ export default function SavedPage() {
                   type="checkbox"
                   checked={selected.has(it.id)}
                   onChange={() => toggle(it.id)}
-                  aria-label={`揀「${it.text.slice(0, 30)}」`}
+                  aria-label={`選取「${it.text.slice(0, 30)}」`}
                 />
                 <div className="saved-main">
                   <div className="saved-text">{it.text}</div>

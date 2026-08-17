@@ -222,7 +222,7 @@ export default function Home() {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "出咗啲問題,請再試。");
+      setError(e instanceof Error ? e.message : "發生錯誤,請再試一次。");
     } finally {
       setLoading(false);
       setStreamText("");
@@ -230,14 +230,14 @@ export default function Home() {
   }
 
   function clearConvo() {
-    if (!confirm("清除呢段對話?")) return;
+    if (!confirm("確定清除這段對話?")) return;
     updateActiveItems(() => []);
     setError(null);
   }
 
   function removeConvo() {
     if (!active) return;
-    if (!confirm(`刪除「${active.title}」?`)) return;
+    if (!confirm(`確定刪除「${active.title}」?`)) return;
     deleteConvo(active.id);
   }
 
@@ -252,7 +252,9 @@ export default function Home() {
     <div className="app">
       <header className="header">
         <h1>英文對話練習 🗣️</h1>
-        <div className="controls">
+        {/* 分成兩組:手機上標題與導覽同一行,兩個下拉獨佔一行(見 globals.css 的
+            @media 區塊)。合在一起的話,窄螢幕會把下拉擠到只剩幾個像素。 */}
+        <div className="ctl-selects">
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as Level)}
@@ -271,10 +273,13 @@ export default function Home() {
           >
             {AVAILABLE_MODELS.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {/* 手機空間有限,「claude-」前綴沒有資訊量,予以略去 */}
+                {m.replace(/^claude-/, "")}
               </option>
             ))}
           </select>
+        </div>
+        <div className="ctl-nav">
           <Link className="ghost-btn" href="/review" title="今日複習">
             📅 複習{dueCount > 0 ? ` (${dueCount})` : ""}
           </Link>
@@ -306,7 +311,7 @@ export default function Home() {
           value={active?.scenario ?? "free"}
           onChange={(e) => active && setScenario(active.id, e.target.value as ScenarioId)}
           aria-label="情境"
-          title="揀情境,AI 會做返嗰個角色同你演練"
+          title="選擇情境,AI 會扮演該角色與你練習"
         >
           {SCENARIOS.map((s) => (
             <option key={s.id} value={s.id}>
@@ -314,13 +319,13 @@ export default function Home() {
             </option>
           ))}
         </select>
-        <button className="ghost-btn" onClick={() => newConvo(active?.scenario)} title="開新對話">
+        <button className="ghost-btn" onClick={() => newConvo(active?.scenario)} title="新增對話">
           ＋ 新
         </button>
         <button className="ghost-btn" onClick={clearConvo} title="清空內容">
           清除
         </button>
-        <button className="ghost-btn" onClick={removeConvo} title="刪除呢個對話">
+        <button className="ghost-btn" onClick={removeConvo} title="刪除此對話">
           🗑
         </button>
       </div>
@@ -328,12 +333,12 @@ export default function Home() {
       <div className="messages" ref={messagesRef}>
         {items.length === 0 && !streamText && (
           <div className="empty">
-            用英文打句嘢開始傾偈啦 👋
+            用英文輸入一句話,開始對話 👋
             <br />
-            AI 會自然咁回你,同時幫你捉語法同用詞嘅問題(用中文解釋)。
+            AI 會自然地回覆你,同時指出語法及用詞問題(以中文解釋)。
             <br />
             <span className="empty-hint">
-              💡 撳 AI 回覆入面唔識嘅字可以查字典;揀「🎭 情境」可以角色扮演。
+              💡 點按 AI 回覆中不懂的字詞可查字典;選擇「🎭 情境」可進行角色扮演。
             </span>
           </div>
         )}
@@ -368,7 +373,7 @@ export default function Home() {
             <div className="bubble">{streamText}▍</div>
           </div>
         )}
-        {loading && !streamText && <div className="typing">AI 諗緊…</div>}
+        {loading && !streamText && <div className="typing">AI 思考中…</div>}
       </div>
 
       {error && <div className="statusbar error">⚠️ {error}</div>}
@@ -380,7 +385,7 @@ export default function Home() {
             className={`mic ${recording ? "recording" : ""}`}
             onClick={recording ? stopRec : startRec}
             disabled={transcribing}
-            title={recording ? "停止錄音" : "㩒住講英文"}
+            title={recording ? "停止錄音" : "按此說英文"}
             aria-label={recording ? "停止錄音" : "錄音"}
           >
             {transcribing ? "…" : recording ? "⏹" : "🎤"}
@@ -393,11 +398,12 @@ export default function Home() {
           onKeyDown={onKeyDown}
           placeholder={
             recording
-              ? "錄緊音…㩒 ⏹ 停"
+              ? "錄音中…按 ⏹ 停止"
               : transcribing
-                ? "轉緊文字…"
-                : "Type in English…  (Enter 送出,Shift+Enter 換行)"
+                ? "轉換文字中…"
+                : "用英文輸入…"
           }
+          title="Enter 送出,Shift+Enter 換行"
           rows={1}
         />
         <button className="send" onClick={send} disabled={loading || !input.trim()}>
@@ -406,19 +412,18 @@ export default function Home() {
       </div>
 
       <div className={`statusbar budget-${budgetLevel(usage)}`}>
-        <span>模型:{model}</span>
+        {/* sb-model / sb-month 於手機收起(頂部已顯示模型,本月數字非即時需要) */}
+        <span className="sb-model">模型:{model}</span>
         <span>
-          今日 ~{usage.today.tokens.toLocaleString()} / {DAILY_BUDGET.toLocaleString()} tokens
+          今日 ~{usage.today.tokens.toLocaleString()} / {DAILY_BUDGET.toLocaleString()}
         </span>
-        <span>本月 ~{usage.month.tokens.toLocaleString()} tokens</span>
+        <span className="sb-month">本月 ~{usage.month.tokens.toLocaleString()}</span>
         <span>
-          🔊 {usage.today.tts} · 🎤 {usage.today.stt} 次(今日)
+          🔊 {usage.today.tts} · 🎤 {usage.today.stt}
         </span>
         {budgetLevel(usage) !== "ok" && (
           <span className="budget-note">
-            {budgetLevel(usage) === "over"
-              ? "⚠️ 已經超咗預算,考慮轉平啲嘅模型"
-              : "⚠️ 接近今日預算"}
+            {budgetLevel(usage) === "over" ? "⚠️ 已超出預算" : "⚠️ 接近今日預算"}
           </span>
         )}
       </div>

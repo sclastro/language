@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRecorder } from "@/hooks/useRecorder";
 import { scorePronunciation, type PronResult } from "@/lib/pron";
 
-/** 跟讀評分:撳 🎤 讀出目標句 → Whisper 轉錄 → 逐字比對俾分。 */
+/** 跟讀評分:按 🎤 朗讀目標句 → 語音轉文字 → 逐字比對評分。 */
 export default function PronPractice({ target }: { target: string }) {
   const [result, setResult] = useState<PronResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -26,9 +26,9 @@ export default function PronPractice({ target }: { target: string }) {
         className={`pron-btn ${recording ? "recording" : ""}`}
         onClick={recording ? stop : start}
         disabled={transcribing}
-        title="跟讀呢句,評分你嘅發音"
+        title="朗讀此句,為你的發音評分"
       >
-        {transcribing ? "評緊分…" : recording ? "⏹ 讀完㩒我" : "🎙 跟讀"}
+        {transcribing ? "評分中…" : recording ? "⏹ 讀完按此" : "🎙 跟讀"}
       </button>
 
       {err && <span className="pron-err">⚠️ {err}</span>}

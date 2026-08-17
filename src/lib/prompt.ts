@@ -12,10 +12,10 @@ const LEVEL_GUIDE: Record<Level, string> = {
 
 /**
  * 建立 system prompt。目標:
- *  1. 用自然英文延續對話(做傾偈夥伴)。
- *  2. 檢查用戶【最新一句】嘅語法/用詞/地道程度,用【繁體中文】解釋。
+ *  1. 以自然英文延續對話(擔任對話夥伴)。
+ *  2. 檢查用戶【最新一句】的語法/用詞/地道程度,以【繁體中文書面語】解釋。
  *  3. 只回 JSON,方便前端 render。
- * 特意寫得精簡去慳 token。
+ * 刻意寫得精簡以節省 token。
  */
 export function buildSystemPrompt(level: Level, scenario?: string): string {
   const brief = scenarioBrief(scenario);
@@ -29,7 +29,8 @@ export function buildSystemPrompt(level: Level, scenario?: string): string {
     "1. `reply`: ONLY your natural English conversational response. Be warm and ask a follow-up question.",
     "   VERY IMPORTANT: `reply` must contain ONLY conversation. Do NOT list corrections, do NOT write the word 'Corrections', and do NOT include any Chinese here.",
     "2. `corrections`: review ONLY the learner's most recent message for grammar, word choice, and naturalness.",
-    "   For each issue give the original snippet, a corrected version, and a short explanation in TRADITIONAL CHINESE (繁體中文).",
+    "   For each issue give the original snippet, a corrected version, and a short explanation in TRADITIONAL CHINESE.",
+    "   The explanation MUST be in standard written Chinese (書面語), NOT Cantonese colloquial. Do not use 嘅/咗/喺/唔/冇/啲/嗰/俾.",
     "   Return an empty array if the message is already correct and natural. Focus on real mistakes and clearly more natural alternatives; don't nitpick.",
     "3. `rewrite`: the learner's most recent message rewritten as one full, correct, natural English sentence (or sentences).",
     "   If the message is already perfect, set `rewrite` to the original message unchanged. `rewrite` is English only.",

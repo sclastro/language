@@ -14,7 +14,7 @@ export type LookupState = {
   error?: string;
 };
 
-/** 將 AI 英文回覆變成「逐個字可以撳」— 撳一下查生字。 */
+/** 將 AI 英文回覆變成「逐字可點按」— 點一下即查生字。 */
 export function TappableText({
   text,
   onWord,
@@ -38,7 +38,7 @@ export function TappableText({
   );
 }
 
-/** 查完之後由底部彈出嘅生字卡。 */
+/** 查詢後由底部彈出的生字卡。 */
 export default function VocabSheet({
   lookup,
   onClose,
@@ -49,7 +49,7 @@ export default function VocabSheet({
   const { items } = useSaved();
   const [added, setAdded] = useState(false);
 
-  // 撳 Esc 閂咗佢(鍵盤用戶同埋手機外接鍵盤都用得)。
+  // 按 Esc 關閉(鍵盤用戶及手機外接鍵盤同樣適用)。
   useEffect(() => {
     if (!lookup) return;
     const onKey = (e: KeyboardEvent) => {
@@ -77,7 +77,7 @@ export default function VocabSheet({
           {lookup.word}
           <SpeakerButton text={lookup.word} title="讀出生字" />
         </div>
-        {lookup.loading && <div className="sheet-loading">查緊字典…</div>}
+        {lookup.loading && <div className="sheet-loading">查詢中…</div>}
         {lookup.error && <div className="login-error">⚠️ {lookup.error}</div>}
         {lookup.meaning && <div className="sheet-meaning">{lookup.meaning}</div>}
         {lookup.example && (
@@ -95,10 +95,10 @@ export default function VocabSheet({
               setAdded(true);
             }}
           >
-            {already ? "✓ 已喺生字簿" : "＋ 加入生字簿"}
+            {already ? "✓ 已在生字簿" : "＋ 加入生字簿"}
           </button>
           <button className="ghost-btn" onClick={onClose}>
-            閂
+            關閉
           </button>
         </div>
       </div>
@@ -119,6 +119,6 @@ export async function lookupWord(word: string, sentence: string) {
     error?: string;
   };
   if (!res.ok) throw new Error(data.error || "查詢失敗");
-  addUsage({ tokens: 120 }); // 粗略估算一次查字嘅成本
+  addUsage({ tokens: 120 }); // 粗略估算一次查字的成本
   return { meaning: data.meaning ?? "", example: data.example ?? "" };
 }

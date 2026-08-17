@@ -80,7 +80,9 @@ input {
   margin: 0;
   margin-right: auto;
 }
-.header .controls {
+.header .controls,
+.header .ctl-selects,
+.header .ctl-nav {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -436,6 +438,141 @@ input {
   font-size: 14px;
   display: inline-block;
   margin-top: 8px;
+}
+
+/* ──────────────────────────────────────────────────────────
+   手機版面(≤640px)
+   原本整份樣式表冇任何 media query,所有控制項只靠 flex-wrap 換行,
+   結果喺 390px 闊嘅手機上,介面本身食咗成 50–69% 螢幕高度,
+   對話區只剩三成。以下規則將各條橫列壓返一行,並隱藏喺細螢幕上
+   冇意義嘅資訊(鍵盤提示、重複顯示嘅模型名、本月統計)。
+   ────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* 頂部三列 → 兩列,而且每列都矮啲 */
+  .header {
+    padding: 8px 12px;
+    gap: 8px;
+    row-gap: 6px;
+  }
+  /* 第一行:標題 + 導覽按鈕;第二行:兩個下拉各佔一半。
+     若全部擠在同一行,窄螢幕(360px)會把下拉壓到看不清文字。
+     用 grid 才能保證標題與導覽同一行(純 flex-wrap 會依內容寬度先換行);
+     `:has()` 不支援時自動退回 flex,只是多一行,不會壞版。 */
+  .header:has(.ctl-selects) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+  .header:has(.ctl-selects) .ctl-selects {
+    grid-column: 1 / -1;
+  }
+  .header h1 {
+    font-size: 17px;
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-right: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .header .ctl-nav {
+    order: 2;
+    flex: 0 0 auto;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .header .ctl-selects {
+    order: 3;
+    width: 100%;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .header select {
+    padding: 5px 6px;
+    font-size: 14px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .header .ghost-btn {
+    padding: 5px 9px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  /* 對話列壓成一行:兩個下拉平均分剩餘空間並自動截字 */
+  .convo-bar {
+    padding: 7px 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .convo-bar select {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    font-size: 14px;
+    padding: 5px 6px;
+  }
+  .convo-bar .ghost-btn {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .messages {
+    padding: 14px 12px;
+    gap: 12px;
+  }
+  .empty {
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 0 4px;
+  }
+  .empty-hint {
+    font-size: 13px;
+  }
+
+  /* 輸入列:提示文字喺手機唔會再換三行(見 page.tsx 嘅短 placeholder) */
+  .composer {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .composer textarea {
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .composer .send {
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+  }
+  .composer .mic {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+
+  /* 狀態列壓成一行:模型名(頂部已有)同本月統計喺手機收起 */
+  .statusbar {
+    padding: 5px 12px 8px;
+    font-size: 12px;
+    gap: 10px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .statusbar .sb-model,
+  .statusbar .sb-month {
+    display: none;
+  }
+  .statusbar.error {
+    white-space: normal;
+    flex-wrap: wrap;
+  }
 }
 
 /* ---- tappable words + vocab sheet ---- */

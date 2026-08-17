@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 /**
  * 雲端同步(可選):用 Upstash Redis REST(Vercel Marketplace 一鍵加,
  * 會自動注入 KV_REST_API_URL / KV_REST_API_TOKEN 或 UPSTASH_REDIS_REST_URL / _TOKEN)。
- * 未設定嘅話回 { configured: false },前端就唔顯示同步掣 — app 照用。
+ * 未設定時回傳 { configured: false },前端便不顯示同步按鈕 — app 仍可正常使用。
  */
 const SYNC_KEY = "et:saved";
 
@@ -37,7 +37,7 @@ export async function GET() {
   try {
     const result = await kvCommand(["GET", SYNC_KEY]);
     const parsed = typeof result === "string" ? JSON.parse(result) : null;
-    // v1 存嘅係一個 array;v2 存 { items, tombstones }。兩種都讀得。
+    // v1 儲存的是一個 array;v2 儲存 { items, tombstones }。兩種格式皆可讀取。
     const items = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
     const tombstones = Array.isArray(parsed) ? {} : (parsed?.tombstones ?? {});
     return NextResponse.json({
