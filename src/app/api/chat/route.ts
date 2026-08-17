@@ -6,13 +6,16 @@ import {
   friendlyError,
 } from "@/lib/poe";
 import { buildSystemPrompt } from "@/lib/prompt";
+import { parseTutorResponse, extractPartialReply } from "@/lib/tutorJson";
 import type { ChatMessage, Level, TutorResponse } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_HISTORY = 8; // 只保留最近數條以節省 token
-const MAX_TOKENS = 600;
+// max_tokens 是上限而非收費 —— 只有真正生成出來的 token 才扣 points。
+// 600 太細:訊息長一點,reply + corrections + rewrite 就會被截斷,JSON 缺尾。
+const MAX_TOKENS = 1600;
 const VALID_LEVELS: Level[] = ["beginner", "intermediate", "advanced"];
 
 type Body = {
@@ -21,68 +24,6 @@ type Body = {
   model?: string;
   scenario?: string;
 };
-
-/** 由模型回覆(可能夾雜 markdown code fence)抽出 JSON 並穩健 parse。 */
-function parseTutorResponse(raw: string): TutorResponse {
-  let text = raw.trim();
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) text = fence[1].trim();
-  if (!text.startsWith("{")) {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
-  }
-  try {
-    const obj = JSON.parse(text) as Partial<TutorResponse>;
-    return {
-      reply: typeof obj.reply === "string" ? obj.reply : "",
-      corrections: Array.isArray(obj.corrections)
-        ? obj.corrections
-            .filter(
-              (c): c is NonNullable<typeof c> =>
-                !!c && typeof c.original === "string" && typeof c.corrected === "string"
-            )
-            .map((c) => ({
-              original: c.original,
-              corrected: c.corrected,
-              explanation: typeof c.explanation === "string" ? c.explanation : "",
-            }))
-        : [],
-      rewrite: typeof obj.rewrite === "string" ? obj.rewrite : "",
-    };
-  } catch {
-    return { reply: raw.trim(), corrections: [], rewrite: "" };
-  }
-}
-
-/**
- * 由尚未完成的 JSON 串流中,抽出 reply 欄位目前為止的內容(供前端逐字顯示)。
- * 尋找 `"reply":"` 之後的字串,處理跳脫字元,遇到未閉合的引號即視為「目前到此為止」。
- */
-function extractPartialReply(full: string): string {
-  const m = full.match(/"reply"\s*:\s*"/);
-  if (!m || m.index === undefined) return "";
-  let seg = "";
-  for (let i = m.index + m[0].length; i < full.length; i++) {
-    const ch = full[i];
-    if (ch === "\\") {
-      seg += ch + (full[i + 1] ?? "");
-      i++;
-      continue;
-    }
-    if (ch === '"') break;
-    seg += ch;
-  }
-  // 結尾可能截斷了一半的 escape,先嘗試 parse,失敗則再切一格重試
-  for (let cut = 0; cut < 2; cut++) {
-    try {
-      return JSON.parse('"' + seg.slice(0, seg.length - cut) + '"') as string;
-    } catch {
-      /* retry */
-    }
-  }
-  return "";
-}
 
 export async function POST(request: Request) {
   let body: Body;

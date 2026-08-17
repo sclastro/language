@@ -43,6 +43,7 @@ type StreamEvent =
       reply: string;
       corrections: Correction[];
       rewrite: string;
+      truncated?: boolean;
       usage?: { totalTokens: number };
     }
   | { t: "e"; error: string };
@@ -217,6 +218,12 @@ export default function Home() {
             });
             if (payload.usage?.totalTokens) {
               addUsage({ tokens: payload.usage.totalTokens });
+            }
+            // 輸出被截斷 → 搶救到的糾正可能不齊,要講返俾用戶知,唔好靜靜收貨。
+            if (payload.truncated) {
+              setError(
+                "The reply hit the length limit, so some corrections may be missing. Try sending a shorter message."
+              );
             }
           }
         }
