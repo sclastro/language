@@ -24,6 +24,7 @@ import {
   mergeInConvos,
 } from "@/lib/convoStore";
 import { buildBackupJson, restoreBackup, describeRestore } from "@/lib/backup";
+import { convosToText, toTextFile } from "@/lib/textExport";
 
 const SORT_KEY = "english-tutor-saved-sort-v1";
 
@@ -143,17 +144,38 @@ export default function SavedPage() {
     });
   }
 
-  function backupJson() {
-    // 備份連對話一齊帶走(組裝邏輯喺 lib/backup.ts,有測試覆蓋)。
-    const blob = new Blob([buildBackupJson()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
+  function download(content: BlobPart, filename: string, type: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `saved-backup-${Date.now()}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function backupJson() {
+    // 備份連對話一齊帶走(組裝邏輯在 lib/backup.ts,有測試覆蓋)。
+    download(buildBackupJson(), `saved-backup-${Date.now()}.json`, "application/json");
+  }
+
+  /** 匯出對話成純文字:給人閱讀/列印,不是給程式讀的備份。 */
+  function exportChatsText() {
+    const convos = getSyncableConvos(Infinity);
+    if (convos.length === 0) {
+      setError("No conversations to export yet.");
+      return;
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    download(
+      toTextFile(convosToText(convos)),
+      `english-tutor-chats-${stamp}.txt`,
+      "text/plain;charset=utf-8"
+    );
+    setNote(
+      `Exported ${convos.length} conversation${convos.length === 1 ? "" : "s"} as text`
+    );
   }
 
   async function importBackup(e: React.ChangeEvent<HTMLInputElement>) {
@@ -250,15 +272,7 @@ export default function SavedPage() {
       const included = Number(res.headers.get("x-included") ?? 0);
       const missing = Number(res.headers.get("x-missing") ?? 0);
       const timedOut = res.headers.get("x-timed-out") === "true";
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `review-${Date.now()}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      download(await res.blob(), `review-${Date.now()}.mp3`, "audio/mpeg");
       if (missing > 0) {
         setError(
           `⚠️ The MP3 has ${included} of ${included + missing} sentences — ${missing} could not be generated${
@@ -295,6 +309,13 @@ export default function SavedPage() {
           </Link>
           <button className="ghost-btn" onClick={backupJson} title="Download a backup file">
             ⬇ Back up
+          </button>
+          <button
+            className="ghost-btn"
+            onClick={exportChatsText}
+            title="Download conversations as a readable text file"
+          >
+            ⬇ Text
           </button>
           <button
             className="ghost-btn"
