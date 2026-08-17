@@ -38,7 +38,7 @@ function newId() {
 
 function blankConvo(scenario: ScenarioId = "free"): Convo {
   const now = Date.now();
-  return { id: newId(), title: "新對話", scenario, items: [], createdAt: now, updatedAt: now };
+  return { id: newId(), title: "New chat", scenario, items: [], createdAt: now, updatedAt: now };
 }
 
 function load(): State {
@@ -73,7 +73,7 @@ function load(): State {
 
 function titleFrom(items: ChatItem[]): string {
   const firstUser = items.find((i) => i.kind === "user");
-  return firstUser ? firstUser.content.slice(0, 24) : "新對話";
+  return firstUser ? firstUser.content.slice(0, 24) : "New chat";
 }
 
 function persist() {
@@ -137,7 +137,7 @@ export function updateActiveItems(updater: (items: ChatItem[]) => ChatItem[]) {
   if (!c) return;
   c.items = updater(c.items);
   c.updatedAt = Date.now();
-  if (c.title === "新對話") c.title = titleFrom(c.items);
+  if (c.title === "New chat") c.title = titleFrom(c.items);
   emit();
 }
 

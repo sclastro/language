@@ -17,8 +17,8 @@ export default function SaveButton({
       type="button"
       className={`saver ${saved ? "on" : ""}`}
       onClick={() => toggleSavedByText(text, kind)}
-      title={saved ? "已收藏(再撳取消)" : "收藏,之後可以複習"}
-      aria-label={saved ? "取消收藏" : "收藏"}
+      title={saved ? "Saved (tap to remove)" : "Save for later review"}
+      aria-label={saved ? "Remove from saved" : "Save"}
     >
       {saved ? "★" : "☆"}
     </button>

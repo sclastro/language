@@ -46,7 +46,7 @@ export function useRecorder({ onResult, onError }: Options) {
 
   const start = useCallback(async () => {
     if (!supported) {
-      onError?.("此瀏覽器不支援錄音。");
+      onError?.("This browser does not support recording.");
       return;
     }
     try {
@@ -75,12 +75,12 @@ export function useRecorder({ onResult, onError }: Options) {
             body: JSON.stringify({ audio: dataUrl, filename: `speech.${ext}` }),
           });
           const data = (await res.json()) as { text?: string; error?: string };
-          if (!res.ok) throw new Error(data.error || "轉錄失敗");
+          if (!res.ok) throw new Error(data.error || "Transcription failed");
           addUsage({ stt: 1 });
           if (data.text) onResult(data.text);
-          else onError?.("聽不到內容,請再試一次。");
+          else onError?.("Could not hear anything. Please try again.");
         } catch (e) {
-          onError?.(e instanceof Error ? e.message : "轉錄失敗。");
+          onError?.(e instanceof Error ? e.message : "Transcription failed.");
         } finally {
           setTranscribing(false);
         }
@@ -90,7 +90,7 @@ export function useRecorder({ onResult, onError }: Options) {
       recorderRef.current = recorder;
       setRecording(true);
     } catch {
-      onError?.("無法取得麥克風權限。");
+      onError?.("Could not get microphone permission.");
     }
   }, [supported, onResult, onError]);
 

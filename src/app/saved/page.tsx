@@ -19,17 +19,17 @@ import {
 } from "@/lib/savedStore";
 
 const KIND_LABEL: Record<SavedKind, string> = {
-  correction: "更正",
-  rewrite: "完整句",
-  reply: "AI 回應",
-  vocab: "生字",
+  correction: "Correction",
+  rewrite: "Full sentence",
+  reply: "AI reply",
+  vocab: "Word",
 };
 
 function fmt(ts: number): string {
-  return new Date(ts).toLocaleString("zh-HK", {
+  return new Date(ts).toLocaleString("en-GB", {
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    month: "short",
+    day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -75,12 +75,12 @@ export default function SavedPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: merged, tombstones: tombs }),
       });
-      if (!push.ok) throw new Error("上傳雲端失敗");
+      if (!push.ok) throw new Error("Failed to upload to the cloud");
       setSyncState("idle");
-      if (showNote) setNote(`☁ 已同步(共 ${merged.length} 項)`);
+      if (showNote) setNote(`☁ Synced (${merged.length} items)`);
     } catch (e) {
       setSyncState("idle");
-      setError(e instanceof Error ? e.message : "同步失敗");
+      setError(e instanceof Error ? e.message : "Sync failed");
     }
   }
 
@@ -94,7 +94,7 @@ export default function SavedPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `收藏備份-${Date.now()}.json`;
+    a.download = `saved-backup-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -112,9 +112,9 @@ export default function SavedPage() {
       const arr = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
       if (!Array.isArray(data) && data?.tombstones) mergeTombstones(data.tombstones);
       const n = importSavedItems(arr);
-      setNote(n > 0 ? `已匯入 ${n} 句新收藏` : "沒有新收藏可匯入(項目已存在)");
+      setNote(n > 0 ? `Imported ${n} new item${n === 1 ? "" : "s"}` : "Nothing new to import (items already exist)");
     } catch {
-      setError("匯入失敗:檔案格式不正確");
+      setError("Import failed: unrecognised file format");
     }
   }
 
@@ -183,7 +183,7 @@ export default function SavedPage() {
       });
       if (!res.ok) {
         const e = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(e.error || `匯出失敗 (${res.status})`);
+        throw new Error(e.error || `Export failed (${res.status})`);
       }
       const included = Number(res.headers.get("x-included") ?? 0);
       const missing = Number(res.headers.get("x-missing") ?? 0);
@@ -199,15 +199,15 @@ export default function SavedPage() {
       URL.revokeObjectURL(url);
       if (missing > 0) {
         setError(
-          `⚠️ MP3 只包含 ${included} 句,有 ${missing} 句未能生成${
-            timedOut ? "(時間不足)" : ""
-          }。可分批選取較少句子再匯出。`
+          `⚠️ The MP3 has ${included} of ${included + missing} sentences — ${missing} could not be generated${
+            timedOut ? " (ran out of time)" : ""
+          }. Try exporting fewer at a time.`
         );
       } else {
-        setNote(`已下載 MP3(${included} 句)`);
+        setNote(`MP3 downloaded (${included} sentences)`);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "匯出失敗");
+      setError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setExporting(false);
     }
@@ -216,30 +216,30 @@ export default function SavedPage() {
   return (
     <div className="app">
       <header className="header">
-        <h1>★ 我的收藏</h1>
+        <h1>★ Saved</h1>
         <div className="controls">
           {syncState !== "off" && (
             <button
               className="ghost-btn"
               onClick={() => doSync(true)}
               disabled={syncState === "syncing"}
-              title="與雲端同步"
+              title="Sync with the cloud"
             >
-              {syncState === "syncing" ? "☁ 同步中…" : "☁ 同步"}
+              {syncState === "syncing" ? "☁ Syncing…" : "☁ Sync"}
             </button>
           )}
-          <Link className="ghost-btn" href="/review" title="今日複習">
-            📅 複習
+          <Link className="ghost-btn" href="/review" title="Today's review">
+            📅 Review
           </Link>
-          <button className="ghost-btn" onClick={backupJson} title="匯出備份檔">
-            ⬇ 備份
+          <button className="ghost-btn" onClick={backupJson} title="Download a backup file">
+            ⬇ Back up
           </button>
           <button
             className="ghost-btn"
             onClick={() => fileRef.current?.click()}
-            title="由備份檔匯入"
+            title="Import from a backup file"
           >
-            ⬆ 匯入
+            ⬆ Import
           </button>
           <input
             ref={fileRef}
@@ -249,7 +249,7 @@ export default function SavedPage() {
             onChange={importBackup}
           />
           <Link className="ghost-btn" href="/">
-            ← 返回
+            ← Back
           </Link>
         </div>
       </header>
@@ -263,22 +263,22 @@ export default function SavedPage() {
       {items.length === 0 ? (
         <div className="messages">
           <div className="empty">
-            仲未有收藏 😌
+            Nothing saved yet 😌
             <br />
-            在對話中點按句子旁的 ☆,即可儲存於此供日後複習。
+            Tap the ☆ beside any sentence while chatting and it will appear here for review.
           </div>
         </div>
       ) : (
         <>
           <div className="saved-toolbar">
             <button className="ghost-btn" onClick={toggleAll}>
-              {allSelected ? "清除選擇" : "全選"}
+              {allSelected ? "Clear selection" : "Select all"}
             </button>
-            <span className="saved-count">已選 {selected.size} / {items.length}</span>
+            <span className="saved-count">{selected.size} of {items.length} selected</span>
             <div className="saved-toolbar-right">
               {playing ? (
                 <button className="ghost-btn" onClick={stopPlay}>
-                  ⏹ 停
+                  ⏹ Stop
                 </button>
               ) : (
                 <button
@@ -286,7 +286,7 @@ export default function SavedPage() {
                   onClick={() => playList(selectedItems)}
                   disabled={selected.size === 0}
                 >
-                  ▶ 播放已選
+                  ▶ Play selected
                 </button>
               )}
               <button
@@ -294,7 +294,7 @@ export default function SavedPage() {
                 onClick={exportMp3}
                 disabled={selected.size === 0 || exporting}
               >
-                {exporting ? "匯出緊…" : "⬇ 下載 MP3"}
+                {exporting ? "Exporting…" : "⬇ Download MP3"}
               </button>
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function SavedPage() {
                   type="checkbox"
                   checked={selected.has(it.id)}
                   onChange={() => toggle(it.id)}
-                  aria-label={`選取「${it.text.slice(0, 30)}」`}
+                  aria-label={`Select "${it.text.slice(0, 30)}"`}
                 />
                 <div className="saved-main">
                   <div className="saved-text">{it.text}</div>
@@ -324,12 +324,12 @@ export default function SavedPage() {
                   </div>
                 </div>
                 <div className="saved-actions">
-                  <SpeakerButton text={it.text} title="讀出" />
+                  <SpeakerButton text={it.text} title="Read aloud" />
                   <button
                     className="saver"
                     onClick={() => removeSaved(it.id)}
-                    title="刪除"
-                    aria-label="刪除"
+                    title="Delete"
+                    aria-label="Delete"
                   >
                     🗑
                   </button>

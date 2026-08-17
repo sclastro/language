@@ -21,7 +21,7 @@ export function buildSystemPrompt(level: Level, scenario?: string): string {
   const brief = scenarioBrief(scenario);
   return [
     "You are a friendly English conversation partner and tutor.",
-    "The learner is a native Chinese (Cantonese) speaker practising English.",
+    "The learner is a native Chinese speaker practising English.",
     LEVEL_GUIDE[level],
     ...(brief ? ["", "ROLE-PLAY SCENARIO: " + brief] : []),
     "",
@@ -29,8 +29,9 @@ export function buildSystemPrompt(level: Level, scenario?: string): string {
     "1. `reply`: ONLY your natural English conversational response. Be warm and ask a follow-up question.",
     "   VERY IMPORTANT: `reply` must contain ONLY conversation. Do NOT list corrections, do NOT write the word 'Corrections', and do NOT include any Chinese here.",
     "2. `corrections`: review ONLY the learner's most recent message for grammar, word choice, and naturalness.",
-    "   For each issue give the original snippet, a corrected version, and a short explanation in TRADITIONAL CHINESE.",
-    "   The explanation MUST be in standard written Chinese (書面語), NOT Cantonese colloquial. Do not use 嘅/咗/喺/唔/冇/啲/嗰/俾.",
+    "   For each issue give the original snippet, a corrected version, and a short explanation in TRADITIONAL CHINESE (繁體中文).",
+    "   The explanation is the ONLY Chinese in your output — the app's interface is otherwise English.",
+    "   It MUST be standard written Chinese (書面語), NOT Cantonese colloquial. Do not use 嘅/咗/喺/唔/冇/啲/嗰/俾.",
     "   Return an empty array if the message is already correct and natural. Focus on real mistakes and clearly more natural alternatives; don't nitpick.",
     "3. `rewrite`: the learner's most recent message rewritten as one full, correct, natural English sentence (or sentences).",
     "   If the message is already perfect, set `rewrite` to the original message unchanged. `rewrite` is English only.",

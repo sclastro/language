@@ -26,9 +26,9 @@ export default function PronPractice({ target }: { target: string }) {
         className={`pron-btn ${recording ? "recording" : ""}`}
         onClick={recording ? stop : start}
         disabled={transcribing}
-        title="朗讀此句,為你的發音評分"
+        title="Read this aloud and get a pronunciation score"
       >
-        {transcribing ? "評分中…" : recording ? "⏹ 讀完按此" : "🎙 跟讀"}
+        {transcribing ? "Scoring…" : recording ? "⏹ Tap when done" : "🎙 Read aloud"}
       </button>
 
       {err && <span className="pron-err">⚠️ {err}</span>}
@@ -40,7 +40,7 @@ export default function PronPractice({ target }: { target: string }) {
               result.score >= 80 ? "good" : result.score >= 50 ? "mid" : "bad"
             }`}
           >
-            {result.score} 分
+            {result.score}%
           </span>
           <span className="pron-words">
             {result.words.map((w, i) => (
@@ -49,7 +49,7 @@ export default function PronPractice({ target }: { target: string }) {
               </span>
             ))}
           </span>
-          <span className="pron-heard">你讀到:「{result.heard}」</span>
+          <span className="pron-heard">Heard: “{result.heard}”</span>
         </div>
       )}
     </div>

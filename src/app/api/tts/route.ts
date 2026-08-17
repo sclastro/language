@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
   if (!text) {
-    return NextResponse.json({ error: "未提供要朗讀的文字。" }, { status: 400 });
+    return NextResponse.json({ error: "No text provided to read aloud." }, { status: 400 });
   }
 
   try {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const url = completion.choices[0]?.message?.content?.trim() ?? "";
     if (!/^https?:\/\//.test(url)) {
       return NextResponse.json(
-        { error: "TTS 未回傳有效的音訊連結。" },
+        { error: "TTS did not return a valid audio link." },
         { status: 502 }
       );
     }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       // 直接將音訊 bytes 送返前端(前端會存入 IndexedDB 做本機快取)。
       const audio = await fetch(url);
       if (!audio.ok) {
-        return NextResponse.json({ error: "下載音訊失敗。" }, { status: 502 });
+        return NextResponse.json({ error: "Failed to download the audio." }, { status: 502 });
       }
       const buf = await audio.arrayBuffer();
       return new NextResponse(buf, {

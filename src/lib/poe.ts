@@ -32,7 +32,7 @@ export function getPoeClient(): OpenAI {
   const apiKey = process.env.QM_POE9_KEY || process.env.POE_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "尚未設定 QM_POE9_KEY(或 POE_API_KEY)。請在環境變數中填入你的 Poe key。"
+      "QM_POE9_KEY (or POE_API_KEY) is not set. Add your Poe key to the environment variables."
     );
   }
   if (!client) {
@@ -54,21 +54,21 @@ export function friendlyError(err: unknown): { message: string; status: number }
 
   if (status === 401 || /invalid_api_key|Incorrect API key/i.test(raw)) {
     return {
-      message: "Poe API key 不正確或已失效。請在 Vercel 更新 QM_POE9_KEY 後重新部署。",
+      message: "Your Poe API key is invalid or has been revoked. Update QM_POE9_KEY in Vercel and redeploy.",
       status: 401,
     };
   }
   if (status === 429 || /rate limit/i.test(raw)) {
-    return { message: "請求過於頻繁,請稍後再試(Poe 限速)。", status: 429 };
+    return { message: "Too many requests — please wait a moment (Poe rate limit).", status: 429 };
   }
   if (/insufficient|points|quota|billing/i.test(raw)) {
-    return { message: "Poe points 不足,請檢查你的額度。", status: 402 };
+    return { message: "You are out of Poe points. Check your quota.", status: 402 };
   }
   if (/not found/i.test(raw) && /model/i.test(raw)) {
-    return { message: "所選模型在 Poe API 中不存在,請改用其他模型。", status: 404 };
+    return { message: "That model is not available on the Poe API. Pick a different one.", status: 404 };
   }
   if (status === 408 || /timeout|ETIMEDOUT|aborted/i.test(raw)) {
-    return { message: "連線逾時,請再試一次。", status: 504 };
+    return { message: "The request timed out. Please try again.", status: 504 };
   }
-  return { message: raw || "發生錯誤,請再試一次。", status };
+  return { message: raw || "Something went wrong. Please try again.", status };
 }

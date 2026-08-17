@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
   const messages = Array.isArray(body.messages) ? body.messages : [];
   if (messages.length === 0) {
-    return NextResponse.json({ error: "未提供對話內容。" }, { status: 400 });
+    return NextResponse.json({ error: "No conversation content provided." }, { status: 400 });
   }
 
   const level: Level = VALID_LEVELS.includes(body.level as Level)
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     client = getPoeClient();
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Poe client 初始化失敗。" },
+      { error: err instanceof Error ? err.message : "Failed to initialise the Poe client." },
       { status: 500 }
     );
   }

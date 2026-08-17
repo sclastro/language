@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
   if (items.length === 0) {
-    return NextResponse.json({ error: "未選取任何句子。" }, { status: 400 });
+    return NextResponse.json({ error: "No sentences selected." }, { status: 400 });
   }
 
   try {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     const parts = results.filter((b): b is Buffer => b !== null);
     if (parts.length === 0) {
       return NextResponse.json(
-        { error: "音訊生成失敗,一句都未能完成。請減少句數再試。" },
+        { error: "Audio generation failed for every sentence. Try selecting fewer." },
         { status: 502 }
       );
     }

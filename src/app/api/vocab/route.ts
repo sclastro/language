@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
-  if (!word) return NextResponse.json({ error: "未提供要查詢的字詞。" }, { status: 400 });
+  if (!word) return NextResponse.json({ error: "No word provided to look up." }, { status: 400 });
 
   try {
     const client = getPoeClient();
@@ -28,9 +28,9 @@ export async function POST(request: Request) {
           content: [
             `Define the English word "${word}"`,
             sentence ? `as used in this sentence: "${sentence}".` : ".",
-            "For a Chinese-speaking learner. Respond with ONLY JSON:",
-            '{"meaning": "簡短繁體中文解釋(包詞性)", "example": "one short natural English example sentence"}',
-            "The meaning must be in standard written Chinese (書面語), NOT Cantonese colloquial.",
+            "For an English learner. Respond with ONLY JSON:",
+            '{"meaning": "a short English definition, including the part of speech", "example": "one short natural English example sentence"}',
+            "Write the definition in simple English suitable for an intermediate learner. Do not use Chinese.",
           ].join(" "),
         },
       ],

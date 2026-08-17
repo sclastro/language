@@ -4,7 +4,7 @@
 
 ## 這是什麼
 
-**英文對話練習工具**：中文母語者以英文與 AI 對話,即時糾正語法/用詞(繁中解釋),
+**英文對話練習工具**：中文母語者以英文與 AI 對話,即時糾正語法/用詞(糾正解釋用繁中),
 另有語音、收藏、間隔重複複習、情境對話、生字簿等學習功能。個人使用,部署於 Vercel。
 
 - 技術:**Next.js (App Router) + TypeScript**,無資料庫(狀態存於 browser)。
@@ -57,7 +57,7 @@ npm start        # 執行 production build
 - `chat` — **SSE 串流**。由未完成的 JSON 抽出 `reply` 逐字傳送(`{t:"r"}`),完成時傳送 `{t:"f", reply, corrections, rewrite, usage}`。串流失敗會自動退回一次過模式。接受 `scenario`。
 - `tts` — 預設回傳 `{url}`;`{raw:true}` 則直接回傳音訊 bytes + `x-audio-url` header(供前端存入 IndexedDB)。
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
-- `vocab` — 查詢生字,回傳 `{meaning(繁中), example}`。
+- `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
 - `export` — 將多句 TTS **去除 ID3 後串接成一個 MP3** 下載(重用 client 快取 URL 以節省 points)。
 - `sync` — 雲端同步(Upstash),未設定時回傳 `{configured:false}`。
 - `login` / `logout` — 密碼閘,cookie 存 `sha256(密碼+salt)`。
@@ -80,15 +80,17 @@ npm start        # 執行 production build
 `middleware.ts` 保護頁面及成本較高的 API;新增受保護 route 記得加入 matcher。
 
 ## 慣例
-- 註解與 UI 文字一律使用**繁體中文書面語**,不要用廣東話口語(嘅/咗/喺/唔/冇/啲/嗰/俾)。
-  AI 生成的解釋亦同 —— 見 `prompt.ts` 及 `api/vocab` 中的指示。
+- **介面文字一律用英文**(按鈕、提示、錯誤訊息、metadata、manifest 全部)。
+  **唯一例外:糾正解釋(`corrections[].explanation`)保持繁體中文書面語** —— 這是給學習者的
+  鷹架,見 `prompt.ts` 中的指示。生字釋義(`api/vocab`)則用英文。
+- 程式註解仍為繁體中文書面語,不要用廣東話口語(嘅/咗/喺/唔/冇/啲/嗰/俾)。
 - **樣式必須顧及手機**。`globals.css` 設有 `@media (max-width: 640px)` 區塊,將頂部各列壓成單行、
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
 - 新增 Poe 相關功能前,**先用 curl 實測 endpoint/model 名稱**再寫 code(此 codebase 許多決定都是這樣驗證得來)。
 - 出 PR 前 `npm test` 與 `npm run build` 都要綠。
 - **改動收藏資料的形狀就必須加測試**(`test/savedStore.test.ts`)。曾有一個 bug:匯入備份
   遺失了 `srs`/`meaning`/`example`,備份等於保不了命 —— 單靠計算項目數量是抓不到的。
-- 錯誤須經 `friendlyError()`(`lib/poe.ts`)轉成中文再顯示給用戶,不要直接彈出 Poe 的英文原文。
+- 錯誤須經 `friendlyError()`(`lib/poe.ts`)轉成清楚的英文訊息再顯示給用戶,不要直接彈出 Poe 的原始錯誤。
 
 ## Git / 部署
 - 開發 branch:`claude/poe-api-language-learning-mfhxur`。修改 → PR → merge 至 `main`。

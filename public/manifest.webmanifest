@@ -1,14 +1,14 @@
 {
-  "name": "英文對話練習 · English Tutor",
-  "short_name": "英文練習",
-  "description": "同 AI 用英文傾偈,即時糾正語法同用詞。",
+  "name": "English Tutor",
+  "short_name": "English Tutor",
+  "description": "Practise English conversation with AI and get instant grammar and word-choice corrections.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f4efe4",
   "theme_color": "#f4efe4",
-  "lang": "zh-Hant",
+  "lang": "en",
   "icons": [
     {
       "src": "/icon-192.png",
