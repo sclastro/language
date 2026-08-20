@@ -37,6 +37,12 @@ export default function ReviewPage() {
   }
 
   const isVocab = current?.kind === "vocab";
+  /**
+   * 有原句就出題:先只顯示你當時寫錯的版本,由你講出正確講法,再揭曉。
+   * 冇原句(舊資料或 AI 回應)就只能直接顯示 —— 見下面的提示。
+   */
+  const hasPrompt = !isVocab && !!current?.original;
+  const quizzable = isVocab || hasPrompt;
 
   return (
     <div className="app">
@@ -82,14 +88,22 @@ export default function ReviewPage() {
               {new Date(current.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </div>
 
-            <div className="review-text">
-              {current.text}
-              <SpeakerButton text={current.text} title="Read aloud" />
-            </div>
+            {hasPrompt && !revealed ? (
+              <>
+                <div className="review-prompt-label">You wrote</div>
+                <div className="review-text review-wrong">{current.original}</div>
+                <div className="review-hint">Say it correctly, then check.</div>
+              </>
+            ) : (
+              <div className="review-text">
+                {current.text}
+                <SpeakerButton text={current.text} title="Read aloud" />
+              </div>
+            )}
 
-            {isVocab && !revealed && (
+            {quizzable && !revealed && (
               <button className="ghost-btn" onClick={() => setRevealed(true)}>
-                Show meaning
+                {isVocab ? "Show meaning" : "Show correct version"}
               </button>
             )}
             {isVocab && revealed && (
@@ -103,8 +117,16 @@ export default function ReviewPage() {
                 )}
               </div>
             )}
+            {hasPrompt && revealed && current.explanation && (
+              <div className="review-answer">{current.explanation}</div>
+            )}
 
-            <PronPractice target={isVocab ? current.example || current.text : current.text} />
+            {/* 未揭曉就顯示跟讀,等於提前洩漏答案,所以要等揭曉之後 */}
+            {(!quizzable || revealed) && (
+              <PronPractice
+                target={isVocab ? current.example || current.text : current.text}
+              />
+            )}
 
             <div className="review-grade">
               <button className="grade-btn bad" onClick={() => grade(false)}>

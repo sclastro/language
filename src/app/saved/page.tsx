@@ -28,6 +28,15 @@ import { itemsToText, toTextFile } from "@/lib/textExport";
 
 const SORT_KEY = "english-tutor-saved-sort-v1";
 
+/** 下次複習的簡短說明,讓你一眼看到每項的排程狀態。 */
+function nextReview(it: SavedItem, now = Date.now()): string {
+  if (!it.srs) return "new";
+  if (it.srs.due <= now) return "due now";
+  const days = Math.ceil((it.srs.due - now) / 86400000);
+  if (days <= 1) return "due tomorrow";
+  return `in ${days} days`;
+}
+
 const KIND_LABEL: Record<SavedKind, string> = {
   correction: "Correction",
   rewrite: "Full sentence",
@@ -58,6 +67,9 @@ export default function SavedPage() {
   const [oldestFirst, setOldestFirst] = useState(false);
   // 長句默認剪到四行;撳一下就展開該項。
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // 60 項就要捲十屏,所以要搜尋同類別篩選才找得到東西。
+  const [query, setQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState<"all" | SavedKind>("all");
 
   const stopRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -193,16 +205,24 @@ export default function SavedPage() {
     }
   }
 
-  // savedStore 一律以 savedAt 由新到舊排好;這裡按用戶選擇再排一次。
-  const view = useMemo(
-    () =>
-      [...items].sort((a, b) =>
-        oldestFirst ? a.savedAt - b.savedAt : b.savedAt - a.savedAt
-      ),
-    [items, oldestFirst]
-  );
+  // 先按搜尋/類別篩選,再按用戶選擇排序。
+  const view = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items
+      .filter((i) => kindFilter === "all" || i.kind === kindFilter)
+      .filter(
+        (i) =>
+          !q ||
+          i.text.toLowerCase().includes(q) ||
+          (i.meaning ?? "").toLowerCase().includes(q) ||
+          (i.example ?? "").toLowerCase().includes(q)
+      )
+      .sort((a, b) => (oldestFirst ? a.savedAt - b.savedAt : b.savedAt - a.savedAt));
+  }, [items, oldestFirst, query, kindFilter]);
 
-  const allSelected = items.length > 0 && selected.size === items.length;
+  const filtering = query.trim().length > 0 || kindFilter !== "all";
+  // 「全選」只作用於目前看得到的項目,否則會揀到篩選以外的東西。
+  const allSelected = view.length > 0 && view.every((i) => selected.has(i.id));
   // 跟顯示次序,播放同匯出 MP3 的順序才符合預期。
   const selectedItems = view.filter((i) => selected.has(i.id));
 
@@ -224,7 +244,7 @@ export default function SavedPage() {
     });
   }
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)));
+    setSelected(allSelected ? new Set() : new Set(view.map((i) => i.id)));
   }
 
   async function playList(list: SavedItem[]) {
@@ -356,6 +376,27 @@ export default function SavedPage() {
         </div>
       ) : (
         <>
+          <div className="saved-filter">
+            <input
+              type="search"
+              placeholder="Search saved items…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search saved items"
+            />
+            <select
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value as "all" | SavedKind)}
+              aria-label="Filter by type"
+            >
+              <option value="all">All types</option>
+              <option value="correction">Correction</option>
+              <option value="rewrite">Full sentence</option>
+              <option value="reply">AI reply</option>
+              <option value="vocab">Word</option>
+            </select>
+          </div>
+
           <div className="saved-toolbar">
             <button className="ghost-btn" onClick={toggleAll}>
               {allSelected ? "Clear selection" : "Select all"}
@@ -371,7 +412,9 @@ export default function SavedPage() {
             >
               {oldestFirst ? "↑ Oldest first" : "↓ Newest first"}
             </button>
-            <span className="saved-count">{selected.size} of {items.length} selected</span>
+            <span className="saved-count">
+              {selected.size} of {filtering ? `${view.length} shown` : items.length} selected
+            </span>
             <div className="saved-toolbar-right">
               {playing ? (
                 <button className="ghost-btn" onClick={stopPlay}>
@@ -437,6 +480,7 @@ export default function SavedPage() {
                     <span className={`chip chip-${it.kind}`}>
                       {KIND_LABEL[it.kind]}
                     </span>
+                    <span className="saved-next">{nextReview(it)}</span>
                     <span>{fmt(it.savedAt)}</span>
                   </div>
                 </div>

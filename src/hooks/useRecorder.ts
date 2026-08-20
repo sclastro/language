@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { addUsage } from "@/lib/usage";
 
 function pickMimeType(): string {
@@ -39,10 +39,22 @@ export function useRecorder({ onResult, onError }: Options) {
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const supported =
-    typeof navigator !== "undefined" &&
-    !!navigator.mediaDevices &&
-    typeof MediaRecorder !== "undefined";
+  /**
+   * 錄音支援度只可以在掛載之後才判斷。
+   *
+   * ⚠️ 曾經在 render 途中直接計算:server 上沒有 `navigator.mediaDevices` 得出 false、
+   * client 得出 true,於是伺服器送來的 HTML 沒有麥克風掣、client 首次繪製卻有,
+   * React 判定不匹配(#418),把**整棵樹丟掉重繪**。改為掛載後才設定,
+   * 首次繪製就同 server 一致,掣隨後才出現。
+   */
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    setSupported(
+      typeof navigator !== "undefined" &&
+        !!navigator.mediaDevices &&
+        typeof MediaRecorder !== "undefined"
+    );
+  }, []);
 
   const start = useCallback(async () => {
     if (!supported) {

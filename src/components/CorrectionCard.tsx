@@ -33,7 +33,12 @@ export default function CorrectionCard({
             <span className="arrow">→</span>
             <span className="fixed">{c.corrected}</span>
             <SpeakerButton text={c.corrected} title="Read the correction aloud" />
-            <SaveButton text={c.corrected} kind="correction" />
+            <SaveButton
+              text={c.corrected}
+              kind="correction"
+              original={c.original}
+              explanation={c.explanation}
+            />
           </div>
           {c.explanation && <div className="explain">{c.explanation}</div>}
         </div>
@@ -45,7 +50,7 @@ export default function CorrectionCard({
           <div className="rewrite-body">
             <span className="rewrite-text">{rewrite}</span>
             <SpeakerButton text={rewrite!} title="Read the full version aloud" />
-            <SaveButton text={rewrite!} kind="rewrite" />
+            <SaveButton text={rewrite!} kind="rewrite" original={original} />
           </div>
         </div>
       )}

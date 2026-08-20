@@ -153,6 +153,7 @@ export default function Home() {
     updateActiveItems((prev) => [...prev, { kind: "user", content: text }]);
     setLoading(true);
     setStreamText("");
+    let gotReply = false;
 
     const history: ChatMessage[] = [...items, { kind: "user", content: text } as ChatItem].map(
       (it) => ({ role: it.kind as "user" | "assistant", content: it.content })
@@ -201,6 +202,7 @@ export default function Home() {
             throw new Error(payload.error);
           } else if (payload.t === "f") {
             finished = true;
+            gotReply = true;
             updateActiveItems((prev) => {
               const copy = [...prev];
               for (let i = copy.length - 1; i >= 0; i--) {
@@ -230,6 +232,18 @@ export default function Home() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      // 失敗就回復到「按送出之前」的狀態:打好的字放返輸入框,並移走那句
+      // 得不到回覆的訊息。否則辛苦打的內容會白白消失,而且要重新輸入一次。
+      if (!gotReply) {
+        updateActiveItems((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.kind === "user" && last.content === text && !last.corrections) {
+            return prev.slice(0, -1);
+          }
+          return prev;
+        });
+        setInput((cur) => (cur.trim() ? cur : text));
+      }
     } finally {
       setLoading(false);
       setStreamText("");
@@ -288,10 +302,14 @@ export default function Home() {
         </div>
         <div className="ctl-nav">
           <Link className="ghost-btn" href="/review" title="Today's review">
-            📅 Review{dueCount > 0 ? ` (${dueCount})` : ""}
+            📅 <span className="nav-label">Review</span>
+            {dueCount > 0 && <span className="nav-count">{dueCount}</span>}
           </Link>
           <Link className="ghost-btn" href="/saved" title="Saved items">
-            ★ Saved{savedItems.length > 0 ? ` (${savedItems.length})` : ""}
+            ★ <span className="nav-label">Saved</span>
+            {savedItems.length > 0 && (
+              <span className="nav-count">{savedItems.length}</span>
+            )}
           </Link>
           {gated && (
             <button className="ghost-btn" onClick={logout} title="Log out">

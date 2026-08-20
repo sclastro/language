@@ -11,10 +11,41 @@ export type SavedItem = {
   srs?: SrsState; // 間隔重複狀態(未設定 = 未複習過,即到期)
   meaning?: string; // 生字:繁中解釋
   example?: string; // 生字:例句
+  /**
+   * 你當時寫錯的版本(更正/完整句才有)。
+   * 有了它,複習時才可以出題:先顯示你原本寫的,由你講出正確版本,再揭曉。
+   * 沒有它的話,句子卡只能把答案攤開,「記得/忘記」等於白按。
+   */
+  original?: string;
+  /** 該項的中文解釋(更正才有),揭曉時一併顯示。 */
+  explanation?: string;
+};
+
+/** 收藏一項時可以順帶記下的額外資料。 */
+export type SavedExtra = {
+  original?: string;
+  explanation?: string;
+  meaning?: string;
+  example?: string;
 };
 
 const KEY = "english-tutor-saved-v1";
 const TOMB_KEY = "english-tutor-deleted-v1";
+const NEW_TODAY_KEY = "english-tutor-new-today-v1";
+
+/**
+ * 每日最多引入幾張新卡(從未複習過的收藏)。
+ *
+ * ⚠️ 沒有上限的話,「未複習過」一律當即刻到期:收藏 60 項就有 51 項堆在今天,
+ * 一次溫不完,徽章上的數字變成無意義的噪音。正經的間隔重複都會限制每日新卡。
+ */
+export const DAILY_NEW_LIMIT = 20;
+
+function todayKey(now = Date.now()): string {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+let newToday: { date: string; count: number } = { date: "", count: 0 };
 
 /** 刪除記錄(tombstone):text → 刪除時間。缺少它的話,同步會把已刪除的項目重新拉回來。 */
 export type Tombstones = Record<string, number>;
@@ -39,6 +70,8 @@ function load() {
       if (raw) items = JSON.parse(raw) as SavedItem[];
       const tomb = localStorage.getItem(TOMB_KEY);
       if (tomb) tombstones = JSON.parse(tomb) as Tombstones;
+      const nt = localStorage.getItem(NEW_TODAY_KEY);
+      if (nt) newToday = JSON.parse(nt) as typeof newToday;
     }
   } catch {
     /* 壞資料就當空 */
@@ -49,6 +82,7 @@ function persist() {
   try {
     localStorage.setItem(KEY, JSON.stringify(items));
     localStorage.setItem(TOMB_KEY, JSON.stringify(tombstones));
+    localStorage.setItem(NEW_TODAY_KEY, JSON.stringify(newToday));
   } catch {
     /* 容量滿就算 */
   }
@@ -71,14 +105,28 @@ function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-export function addSaved(text: string, kind: SavedKind) {
+export function addSaved(text: string, kind: SavedKind, extra: SavedExtra = {}) {
   load();
   const t = text.trim();
   if (!t) return;
   const key = dedupKey(t, kind);
   if (items.some((i) => dedupKey(i.text, i.kind) === key)) return; // 同類別去重
   delete tombstones[key]; // 重新收藏 → 取消刪除記錄
-  items = [{ id: newId(), text: t, kind, savedAt: Date.now() }, ...items];
+  const orig = extra.original?.trim();
+  items = [
+    {
+      id: newId(),
+      text: t,
+      kind,
+      savedAt: Date.now(),
+      // 原句同正確版本一樣就唔值得存,出題無意義
+      ...(orig && orig !== t ? { original: orig } : {}),
+      ...(extra.explanation ? { explanation: extra.explanation } : {}),
+      ...(extra.meaning ? { meaning: extra.meaning } : {}),
+      ...(extra.example ? { example: extra.example } : {}),
+    },
+    ...items,
+  ];
   persist();
   emit();
 }
@@ -104,11 +152,15 @@ export function removeSavedByText(text: string, kind?: SavedKind) {
   emit();
 }
 
-export function toggleSavedByText(text: string, kind: SavedKind) {
+export function toggleSavedByText(
+  text: string,
+  kind: SavedKind,
+  extra: SavedExtra = {}
+) {
   load();
   const key = dedupKey(text, kind);
   if (items.some((i) => dedupKey(i.text, i.kind) === key)) removeSavedByText(text, kind);
-  else addSaved(text, kind);
+  else addSaved(text, kind, extra);
 }
 
 /** 加入生字(附中文解釋 + 例句)。 */
@@ -126,17 +178,41 @@ export function addVocab(word: string, meaning: string, example: string) {
   emit();
 }
 
-/** 今日到期需複習的項目(依到期時間由早至遲排序)。 */
+/** 今日還可以引入幾張新卡。 */
+export function newCardsAllowance(now = Date.now()): number {
+  load();
+  const used = newToday.date === todayKey(now) ? newToday.count : 0;
+  return Math.max(0, DAILY_NEW_LIMIT - used);
+}
+
+/**
+ * 今日到期需複習的項目。
+ * 已排程過的卡(有 srs)全部照出;未複習過的新卡則受每日配額限制。
+ */
 export function dueItems(now = Date.now()): SavedItem[] {
   load();
-  return items
-    .filter((i) => isDue(i.srs, i.savedAt, now))
-    .sort((a, b) => (a.srs?.due ?? a.savedAt) - (b.srs?.due ?? b.savedAt));
+  const scheduled = items
+    .filter((i) => i.srs && isDue(i.srs, i.savedAt, now))
+    .sort((a, b) => (a.srs?.due ?? 0) - (b.srs?.due ?? 0));
+  const fresh = items
+    .filter((i) => !i.srs)
+    .sort((a, b) => a.savedAt - b.savedAt) // 先溫最早收藏的
+    .slice(0, newCardsAllowance(now));
+  return [...scheduled, ...fresh];
 }
 
 /** 複習一項:記得/忘記 → 更新 SRS 排程。 */
-export function reviewItem(id: string, remembered: boolean) {
+export function reviewItem(id: string, remembered: boolean, now = Date.now()) {
   load();
+  const target = items.find((i) => i.id === id);
+  // 第一次複習一張新卡 → 計入今日配額(之後它就有 srs,不再算新卡)
+  if (target && !target.srs) {
+    const today = todayKey(now);
+    newToday =
+      newToday.date === today
+        ? { date: today, count: newToday.count + 1 }
+        : { date: today, count: 1 };
+  }
   items = items.map((i) =>
     i.id === id
       ? { ...i, srs: reviewSrs(i.srs ?? initialSrs(i.savedAt), remembered) }
@@ -191,6 +267,8 @@ export function mergeSaved(
       // 補回另一邊有、自己沒有的資料,避免遺失
       meaning: pick.meaning ?? other.meaning,
       example: pick.example ?? other.example,
+      original: pick.original ?? other.original,
+      explanation: pick.explanation ?? other.explanation,
       srs: pick.srs ?? other.srs,
     });
   }
@@ -261,6 +339,8 @@ export function importSavedItems(incoming: unknown): number {
       ...(it.srs ? { srs: it.srs } : {}),
       ...(typeof it.meaning === "string" ? { meaning: it.meaning } : {}),
       ...(typeof it.example === "string" ? { example: it.example } : {}),
+      ...(typeof it.original === "string" ? { original: it.original } : {}),
+      ...(typeof it.explanation === "string" ? { explanation: it.explanation } : {}),
     });
     added++;
   }
