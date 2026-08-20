@@ -72,7 +72,10 @@ npm start        # 執行 production build
   `migrateConvos()` 在載入時修復舊資料:曾被當成訊息儲存的原始 JSON,以及中文舊標題。
   是 idempotent 的,見 `test/migrate.test.ts`。
 - `savedStore` — 收藏(correction/rewrite/reply/vocab),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
+  更正/完整句會一併存 `original`(你當時寫錯的版本)同 `explanation`,**複習時才有題目可出**。
 - `srs` — 間隔重複(1→3→7→14→30→60 日)。
+  `savedStore` 另設**每日新卡上限**(`DAILY_NEW_LIMIT`):已排程的到期卡全出,
+  未複習過的新卡則受配額限制。沒有上限的話,收藏 60 項就有 51 項堆在同一日。
 - `usage` — 每日 token/TTS/STT 計數,附每日/每月預算提示。
 - `tts` — 三層語音快取:記憶體 → IndexedDB(`audioCache`)→ 網絡;全 app 單一播放。
 - `pron` — 跟讀評分(LCS 逐字比對,純本地)。
@@ -99,6 +102,10 @@ npm start        # 執行 production build
   **唯一例外:糾正解釋(`corrections[].explanation`)保持繁體中文書面語** —— 這是給學習者的
   鷹架,見 `prompt.ts` 中的指示。生字釋義(`api/vocab`)則用英文。
 - 程式註解仍為繁體中文書面語,不要用廣東話口語(嘅/咗/喺/唔/冇/啲/嗰/俾)。
+- **凡在 render 途中判斷瀏覽器能力(如 `navigator.mediaDevices`)都要搬入 `useEffect`**,
+  否則 server 同 client 首次繪製不一致,React 會判定 hydration 失敗並把整棵樹重繪。
+  麥克風掣就中過這一項。
+- **只靠 `:hover` 的視覺提示在手機上等於沒有**(觸控無 hover)。可點按的字要有靜態樣式。
 - **樣式必須顧及手機**。`globals.css` 設有 `@media (max-width: 640px)` 區塊,將頂部各列壓成單行、
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
 - 新增 Poe 相關功能前,**先用 curl 實測 endpoint/model 名稱**再寫 code(此 codebase 許多決定都是這樣驗證得來)。

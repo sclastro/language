@@ -505,6 +505,10 @@ input {
     font-size: 14px;
     white-space: nowrap;
   }
+  /* 數字大(例如 Review 51)會把標題擠成「Engli…」,所以手機只留圖示 + 數字 */
+  .header .nav-label {
+    display: none;
+  }
 
   /* 對話列壓成一行:兩個下拉平均分剩餘空間並自動截字 */
   .convo-bar {
@@ -654,9 +658,15 @@ input {
 }
 
 /* ---- tappable words + vocab sheet ---- */
+/* 可撳查字典的字。
+   ⚠️ 一定要有**靜態**提示:之前只有 :hover 底色,而觸控螢幕根本沒有 hover,
+   所以在手機上完全看不出哪些字撳得 —— 招牌功能等於隱形。 */
 .wtap {
   cursor: pointer;
   border-radius: 4px;
+  text-decoration: underline dotted var(--border-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
   transition: background 0.12s;
 }
 .wtap:hover {
@@ -1007,4 +1017,83 @@ input {
 .login-error {
   color: var(--danger);
   font-size: 15px;
+}
+
+/* 頂部導覽的數字(Review / Saved 的計數) */
+.nav-count {
+  margin-left: 5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ---- 收藏頁:搜尋 + 類別篩選 ----
+   60 項就要捲十屏,沒有這一列根本找不到東西。 */
+.saved-filter {
+  display: flex;
+  gap: 8px;
+  padding: 10px 18px 0;
+  align-items: center;
+}
+.saved-filter input[type="search"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 11px;
+  font-size: 15px;
+  box-shadow: var(--shadow-sm);
+}
+.saved-filter input[type="search"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.saved-filter select {
+  flex: 0 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+/* 下次複習的狀態(new / due now / in N days) */
+.saved-next {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .saved-filter {
+    padding: 8px 12px 0;
+    gap: 6px;
+  }
+  .saved-filter input[type="search"],
+  .saved-filter select {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+  .saved-next {
+    font-size: 12px;
+  }
+}
+
+/* ---- 複習卡:出題模式 ----
+   句子卡本來把答案直接攤開,「記得/忘記」根本無嘢要回想。
+   有原句就先顯示你寫錯的版本,揭曉後才見正確講法。 */
+.review-prompt-label {
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.review-wrong {
+  color: var(--danger);
+}
+.review-hint {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 8px 0 4px;
 }
