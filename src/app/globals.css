@@ -1097,3 +1097,16 @@ input {
   font-size: 14px;
   margin: 8px 0 4px;
 }
+
+/* 「寫得好自然」那張卡:訊息與 🔊 / ☆ 同一行 */
+.correction.ok .c-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.c-head-actions {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}

@@ -12,9 +12,21 @@ export default function CorrectionCard({
   original?: string;
 }) {
   if (corrections.length === 0) {
+    // 寫啱嘅句子同樣值得收藏同聽發音,所以照樣要有 ☆ 同 🔊 —— 之前這裡
+    // 得一句「Looks good」,結果自己寫啱嘅句子反而收藏唔到。
+    // 句子本身喺上面嘅泡泡已經顯示,冇必要再重複一次,所以只放兩個掣。
+    const ok = (rewrite?.trim() || original?.trim()) ?? "";
     return (
       <div className="correction ok">
-        <div className="c-head">✓ Looks good — that sounds natural!</div>
+        <div className="c-head">
+          <span>✓ Looks good — that sounds natural!</span>
+          {ok && (
+            <span className="c-head-actions">
+              <SpeakerButton text={ok} title="Read your sentence aloud" />
+              <SaveButton text={ok} kind="rewrite" />
+            </span>
+          )}
+        </div>
       </div>
     );
   }
