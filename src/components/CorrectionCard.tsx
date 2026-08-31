@@ -1,4 +1,5 @@
 import type { Correction } from "@/lib/types";
+import { fullCorrectedText } from "@/lib/fullRewrite";
 import SpeakerButton from "./SpeakerButton";
 import SaveButton from "./SaveButton";
 
@@ -31,9 +32,10 @@ export default function CorrectionCard({
     );
   }
 
-  // 完整正確版本:有 rewrite 且與原句不同時才顯示。
-  const showRewrite =
-    !!rewrite && rewrite.trim() !== "" && rewrite.trim() !== (original ?? "").trim();
+  // 完整正確版本。模型有時只回它改動過的那一句,所以要經 fullCorrectedText
+  // 補回整段(見 lib/fullRewrite.ts),否則卡片同 ★ 收藏到的都只有一句。
+  const full = fullCorrectedText(original, corrections, rewrite);
+  const showRewrite = full !== "" && full !== (original ?? "").trim();
 
   return (
     <div className="correction">
@@ -60,9 +62,9 @@ export default function CorrectionCard({
         <div className="rewrite">
           <div className="rewrite-head">✍️ Full corrected version</div>
           <div className="rewrite-body">
-            <span className="rewrite-text">{rewrite}</span>
-            <SpeakerButton text={rewrite!} title="Read the full version aloud" />
-            <SaveButton text={rewrite!} kind="rewrite" original={original} />
+            <span className="rewrite-text">{full}</span>
+            <SpeakerButton text={full} title="Read the full version aloud" />
+            <SaveButton text={full} kind="rewrite" original={original} />
           </div>
         </div>
       )}

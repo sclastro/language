@@ -86,6 +86,10 @@ npm start        # 執行 production build
   曾經試過自動由對話抽句子,結果把未改好的錯句都帶了出來(截斷的訊息是連
   `corrections: []` 同 `rewrite: ""` 一齊存的,被誤判為「本來正確」)。
   下載時加 CRLF + UTF-8 BOM,否則 Windows 記事本會擠成一行或把中文變亂碼。
+- `fullRewrite` — 取得「完整正確版本」。**不可以純粹相信模型回的 `rewrite`**:
+  訊息長而只有一處錯時,它有時只回改動過的那一句,結果卡片同 ★ 收藏都只有一句。
+  `rewrite` 明顯短過原文就改為用 `corrections` 把 original→corrected 套用回原訊息;
+  片段對不上就寧願用模型那份,不會亂砌。
 - `tutorJson` — 解析模型回覆的 JSON。**被 `max_tokens` 截斷時要搶救**(抽出 reply、
   rewrite 及所有括號完整的糾正),並回 `truncated: true`。切勿把原始 JSON 顯示給用戶。
 
