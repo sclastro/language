@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import SpeakerButton from "@/components/SpeakerButton";
-import { fetchTtsUrl, getCachedCdnUrl } from "@/lib/tts";
+import { fetchTtsUrl, getCachedCdnUrl, playExclusive } from "@/lib/tts";
 import {
   useSaved,
   removeSaved,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/convoStore";
 import { buildBackupJson, restoreBackup, describeRestore } from "@/lib/backup";
 import { itemsToText, toTextFile } from "@/lib/textExport";
+import { TTS_MAX_WORDS } from "@/lib/ttsLimit";
 
 const SORT_KEY = "english-tutor-saved-sort-v1";
 
@@ -261,7 +262,8 @@ export default function SavedPage() {
           audioRef.current = a;
           a.onended = () => resolve();
           a.onerror = () => resolve();
-          a.play().catch(() => resolve());
+          // 經 playExclusive 播,連續播放才會跟到朗讀速度設定
+          playExclusive(a).catch(() => resolve());
         });
       } catch {
         /* 跳過無法處理的句子 */
@@ -302,8 +304,14 @@ export default function SavedPage() {
       const included = Number(res.headers.get("x-included") ?? 0);
       const missing = Number(res.headers.get("x-missing") ?? 0);
       const timedOut = res.headers.get("x-timed-out") === "true";
+      const shortened = Number(res.headers.get("x-truncated") ?? 0);
       download(await res.blob(), `review-${Date.now()}.mp3`, "audio/mpeg");
-      if (missing > 0) {
+      if (shortened > 0) {
+        // 唔好靜靜截短:講返俾用戶知邊個情況下音訊唔完整。
+        setError(
+          `⚠️ ${shortened} item${shortened === 1 ? " was" : "s were"} over ${TTS_MAX_WORDS} words, so their audio was shortened.`
+        );
+      } else if (missing > 0) {
         setError(
           `⚠️ The MP3 has ${included} of ${included + missing} sentences — ${missing} could not be generated${
             timedOut ? " (ran out of time)" : ""

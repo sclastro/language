@@ -78,6 +78,11 @@ npm start        # 執行 production build
   未複習過的新卡則受配額限制。沒有上限的話,收藏 60 項就有 51 項堆在同一日。
 - `usage` — 每日 token/TTS/STT 計數,附每日/每月預算提示。
 - `tts` — 三層語音快取:記憶體 → IndexedDB(`audioCache`)→ 網絡;全 app 單一播放。
+  另管理**朗讀速度**(`SPEECH_RATES`,存 localStorage):在 `playExclusive` 套用 `playbackRate`,
+  所以凡經它播放的都會跟。**只影響 app 內播放** —— 匯出的 MP3 速度已固定在音訊裡。
+- `ttsLimit` — 語音長度上限 **2000 個英文字**(不是字元)。`/api/tts` 同 `/api/export`
+  **必須用同一個上限**:曾經一邊 600 字元、一邊冇上限,而匯出又會重用播放時的快取,
+  導致同一句「播過先匯出」同「未播過就匯出」出到唔同音訊。截斷時要回報,不可靜靜截短。
 - `pron` — 跟讀評分(LCS 逐字比對,純本地)。
 - `scenarios` — 情境 role-play 清單。
 - `backup` — 組裝/還原備份檔(收藏 + 對話)。特意由頁面抽出來,方便測試。
