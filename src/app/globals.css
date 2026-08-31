@@ -1110,3 +1110,9 @@ input {
   align-items: center;
   margin-left: auto;
 }
+
+/* 朗讀速度:內容短(「0.8×」),唔應該同難度/模型爭空間 */
+.rate-select {
+  flex: 0 0 auto !important;
+  min-width: 0;
+}

@@ -16,12 +16,49 @@ const memCdn = new Map<string, string>(); // text -> poecdn URL(匯出用)
  */
 let currentAudio: HTMLAudioElement | null = null;
 
+/* ── 朗讀速度 ─────────────────────────────────────────
+   放慢對聽清楚每個音很有幫助。這是全 app 共用的設定,所以在這裡集中管理,
+   凡經 playExclusive 播放的都會套用。
+   ⚠️ 只影響 app 內播放:匯出的 MP3 是檔案,速度已經固定在音訊裡,
+   要改就要重新編碼,做不到。 */
+const RATE_KEY = "english-tutor-speech-rate-v1";
+export const SPEECH_RATES = [0.7, 0.8, 0.9, 1, 1.2] as const;
+
+let speechRate = 1;
+let rateLoaded = false;
+
+export function getSpeechRate(): number {
+  if (!rateLoaded) {
+    rateLoaded = true;
+    try {
+      const v = Number(localStorage.getItem(RATE_KEY));
+      if (v > 0) speechRate = v;
+    } catch {
+      /* ignore */
+    }
+  }
+  return speechRate;
+}
+
+export function setSpeechRate(rate: number) {
+  speechRate = rate;
+  rateLoaded = true;
+  try {
+    localStorage.setItem(RATE_KEY, String(rate));
+  } catch {
+    /* ignore */
+  }
+  // 正在播的立即跟隨,不用等下一句
+  if (currentAudio) currentAudio.playbackRate = rate;
+}
+
 export function playExclusive(audio: HTMLAudioElement) {
   if (currentAudio && currentAudio !== audio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
   currentAudio = audio;
+  audio.playbackRate = getSpeechRate();
   return audio.play();
 }
 

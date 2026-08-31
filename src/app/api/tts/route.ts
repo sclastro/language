@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getPoeClient, DEFAULT_TTS_MODEL, friendlyError } from "@/lib/poe";
+import { limitWords } from "@/lib/ttsLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel:為語音生成預留較多時間
 
-const MAX_CHARS = 600; // 控制成本:太長就截短
 
 /**
  * TTS:將英文文字交給 Poe 的 TTS bot(預設 elevenlabs-v3),
@@ -13,9 +13,12 @@ const MAX_CHARS = 600; // 控制成本:太長就截短
 export async function POST(request: Request) {
   let text: string;
   let raw = false;
+  let truncated = false;
   try {
     const body = (await request.json()) as { text?: string; raw?: boolean };
-    text = (body.text ?? "").trim().slice(0, MAX_CHARS);
+    const limited = limitWords(body.text ?? "");
+    text = limited.text;
+    truncated = limited.truncated;
     raw = body.raw === true;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
@@ -49,11 +52,12 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "audio/mpeg",
           "x-audio-url": url,
+          "x-truncated": String(truncated),
           "Cache-Control": "no-store",
         },
       });
     }
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, truncated });
   } catch (err) {
     const { message, status } = friendlyError(err);
     return NextResponse.json({ error: message }, { status });

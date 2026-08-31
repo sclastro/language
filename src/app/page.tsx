@@ -12,6 +12,7 @@ import VocabSheet, {
 } from "@/components/VocabSheet";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useSaved, dueItems } from "@/lib/savedStore";
+import { SPEECH_RATES, getSpeechRate, setSpeechRate } from "@/lib/tts";
 import { addUsage, useUsage, budgetLevel, DAILY_BUDGET } from "@/lib/usage";
 import {
   useConvos,
@@ -63,6 +64,8 @@ export default function Home() {
   const [gated, setGated] = useState(false);
   const [lookup, setLookup] = useState<LookupState | null>(null);
   const [dueCount, setDueCount] = useState(0);
+  // 朗讀速度(全 app 共用,存 localStorage)。1 = 原速。
+  const [rate, setRate] = useState(1);
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -104,6 +107,7 @@ export default function Home() {
     setHydrated(true);
     setGated(document.cookie.split("; ").some((c) => c === "et_ui=1"));
     setDueCount(dueItems().length);
+    setRate(getSpeechRate());
   }, []);
 
   useEffect(() => {
@@ -296,6 +300,23 @@ export default function Home() {
               <option key={m} value={m}>
                 {/* 手機空間有限,「claude-」前綴沒有資訊量,予以略去 */}
                 {m.replace(/^claude-/, "")}
+              </option>
+            ))}
+          </select>
+          <select
+            className="rate-select"
+            value={rate}
+            onChange={(e) => {
+              const r = Number(e.target.value);
+              setRate(r);
+              setSpeechRate(r);
+            }}
+            aria-label="Speech speed"
+            title="Speed for 🔊 playback in the app (the exported MP3 stays at normal speed)"
+          >
+            {SPEECH_RATES.map((r) => (
+              <option key={r} value={r}>
+                {r}×
               </option>
             ))}
           </select>

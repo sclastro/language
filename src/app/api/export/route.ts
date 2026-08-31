@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPoeClient, DEFAULT_TTS_MODEL, friendlyError } from "@/lib/poe";
+import { limitWords } from "@/lib/ttsLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,11 +39,17 @@ function stripId3(buf: Buffer): Buffer {
   return b;
 }
 
+/** 有冇項目因為太長而被截短(要回報俾用戶知)。 */
+let truncatedCount = 0;
+
 async function itemToMp3(
   item: InItem,
   client: ReturnType<typeof getPoeClient>
 ): Promise<Buffer | null> {
-  const text = (item.text ?? "").trim();
+  // 同 /api/tts 用同一個上限,否則「播過先匯出」同「未播過就匯出」會出到唔同音訊。
+  const limited = limitWords(item.text ?? "");
+  const text = limited.text;
+  if (limited.truncated) truncatedCount++;
   if (!text) return null;
 
   let url = item.url;
@@ -76,6 +83,7 @@ export async function POST(request: Request) {
   try {
     const client = getPoeClient();
     const started = Date.now();
+    truncatedCount = 0;
     const results = new Array<Buffer | null>(items.length).fill(null);
     let timedOut = false;
 
@@ -116,6 +124,7 @@ export async function POST(request: Request) {
         "x-included": String(parts.length),
         "x-missing": String(missing),
         "x-timed-out": String(timedOut),
+        "x-truncated": String(truncatedCount),
       },
     });
   } catch (err) {
