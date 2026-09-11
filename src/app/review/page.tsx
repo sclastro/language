@@ -37,6 +37,9 @@ export default function ReviewPage() {
   }
 
   const isVocab = current?.kind === "vocab";
+  // 地道建議:原句本來冇文法錯,只是生硬。所以不可以標成紅色的「錯」,
+  // 提示語亦要由「講得啱」改為「講得自然」,否則會令人以為自己當時寫錯了。
+  const isPolish = current?.kind === "polish";
   /**
    * 有原句就出題:先只顯示你當時寫錯的版本,由你講出正確講法,再揭曉。
    * 冇原句(舊資料或 AI 回應)就只能直接顯示 —— 見下面的提示。
@@ -84,15 +87,21 @@ export default function ReviewPage() {
 
           <div className="review-card">
             <div className="review-kind">
-              {isVocab ? "Word" : "Sentence"} · saved{" "}
+              {isVocab ? "Word" : isPolish ? "More natural" : "Sentence"} · saved{" "}
               {new Date(current.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </div>
 
             {hasPrompt && !revealed ? (
               <>
                 <div className="review-prompt-label">You wrote</div>
-                <div className="review-text review-wrong">{current.original}</div>
-                <div className="review-hint">Say it correctly, then check.</div>
+                <div className={`review-text ${isPolish ? "review-stiff" : "review-wrong"}`}>
+                  {current.original}
+                </div>
+                <div className="review-hint">
+                  {isPolish
+                    ? "Say it in a more natural way, then check."
+                    : "Say it correctly, then check."}
+                </div>
               </>
             ) : (
               <div className="review-text">
@@ -103,7 +112,11 @@ export default function ReviewPage() {
 
             {quizzable && !revealed && (
               <button className="ghost-btn" onClick={() => setRevealed(true)}>
-                {isVocab ? "Show meaning" : "Show correct version"}
+                {isVocab
+                  ? "Show meaning"
+                  : isPolish
+                    ? "Show the natural version"
+                    : "Show correct version"}
               </button>
             )}
             {isVocab && revealed && (

@@ -56,7 +56,8 @@ npm start        # 執行 production build
 **所有狀態存於 browser,沒有 server DB。** key 只在 server 端 route 讀取,永不傳至 client。
 
 ### API routes(`src/app/api/*`,全部 `runtime=nodejs`)
-- `chat` — **SSE 串流**。由未完成的 JSON 抽出 `reply` 逐字傳送(`{t:"r"}`),完成時傳送 `{t:"f", reply, corrections, rewrite, truncated, usage}`。串流失敗會自動退回一次過模式。接受 `scenario`。
+- `chat` — **SSE 串流**。由未完成的 JSON 抽出 `reply` 逐字傳送(`{t:"r"}`),完成時傳送
+  `{t:"f", reply, corrections, polish, rewrite, truncated, usage}`。串流失敗會自動退回一次過模式。接受 `scenario`。
 - `tts` — 預設回傳 `{url}`;`{raw:true}` 則直接回傳音訊 bytes + `x-audio-url` header(供前端存入 IndexedDB)。
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
 - `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
@@ -71,7 +72,8 @@ npm start        # 執行 production build
   含刪除記錄,可同步/備份(逐個對話 last-write-wins;空白對話不同步;上限 30 個)。
   `migrateConvos()` 在載入時修復舊資料:曾被當成訊息儲存的原始 JSON,以及中文舊標題。
   是 idempotent 的,見 `test/migrate.test.ts`。
-- `savedStore` — 收藏(correction/rewrite/reply/vocab),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
+- `savedStore` — 收藏(correction/polish/rewrite/reply/vocab),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
+  **新增類別時必須同時更新 `isKind()` 白名單**,否則匯入備份及雲端合併都會把它默默改成 `"reply"`。
   更正/完整句會一併存 `original`(你當時寫錯的版本)同 `explanation`,**複習時才有題目可出**。
 - `srs` — 間隔重複(1→3→7→14→30→60 日)。
   `savedStore` 另設**每日新卡上限**(`DAILY_NEW_LIMIT`):已排程的到期卡全出,
@@ -96,7 +98,23 @@ npm start        # 執行 production build
   `rewrite` 明顯短過原文就改為用 `corrections` 把 original→corrected 套用回原訊息;
   片段對不上就寧願用模型那份,不會亂砌。
 - `tutorJson` — 解析模型回覆的 JSON。**被 `max_tokens` 截斷時要搶救**(抽出 reply、
-  rewrite 及所有括號完整的糾正),並回 `truncated: true`。切勿把原始 JSON 顯示給用戶。
+  rewrite 及所有括號完整的糾正/地道建議),並回 `truncated: true`。切勿把原始 JSON 顯示給用戶。
+  沒有 `polish` 欄位的舊回覆一律補回空陣列,絕不可以是 `undefined`。
+
+### 「糾正」與「可以更地道」是兩回事
+模型單看文法的話,只要句子文法正確就甚麼都不說,實際上只做了 grammar check。
+中文母語者寫的英文往往文法無誤卻生硬(逐字直譯、搭配不自然、過於書面)。
+因此 `prompt.ts` 要求**四個欄位**,並把兩種回饋分開:
+
+- `corrections` —— **真正的錯**(文法、時態、一致性、用錯字)。
+- `polish` —— 文法本來正確,但母語者不會這樣講;`{original, suggestion, explanation}`,
+  每次一至三條,並明確指示「不要因為文法沒錯就甚麼都不說」。
+- `rewrite` —— **只套用 `corrections`,不可套用 `polish`**。否則「完整正確版本」會變成
+  模型自己的口吻,★ 收藏到的就不再是你自己寫的句子。
+
+**不要為了省事把 polish 塞進 corrections**:那樣每句都像滿是錯誤,既打擊信心,
+亦分不清「必須改」同「可以更好」。介面上兩者亦分色(琥珀 vs `--info` 藍),
+複習時 polish 的原句不加紅色/刪除線,提示語是「Say it in a more natural way」。
 
 ### 頁面
 - `/` 對話(串流、情境、多對話、點字查生字、用量列)

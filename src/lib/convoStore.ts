@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { Correction } from "./types";
+import type { Correction, Polish } from "./types";
 import type { ScenarioId } from "./scenarios";
 import { parseTutorResponse } from "./tutorJson";
 
@@ -10,6 +10,8 @@ export type UserItem = {
   kind: "user";
   content: string;
   corrections?: Correction[];
+  /** 文法正確但可以更地道的建議。 */
+  polish?: Polish[];
   rewrite?: string;
 };
 export type AssistantItem = { kind: "assistant"; content: string };

@@ -1,4 +1,4 @@
-import type { Correction, TutorResponse } from "./types";
+import type { Correction, Polish, TutorResponse } from "./types";
 
 /**
  * 解析模型回覆的 JSON。
@@ -79,6 +79,20 @@ function extractCompleteObjects(src: string, field: string): unknown[] {
   return out;
 }
 
+function toPolish(arr: unknown[]): Polish[] {
+  return arr
+    .map((c) => c as Partial<Polish>)
+    .filter(
+      (c): c is Polish =>
+        !!c && typeof c.original === "string" && typeof c.suggestion === "string"
+    )
+    .map((c) => ({
+      original: c.original,
+      suggestion: c.suggestion,
+      explanation: typeof c.explanation === "string" ? c.explanation : "",
+    }));
+}
+
 function toCorrections(arr: unknown[]): Correction[] {
   return arr
     .map((c) => c as Partial<Correction>)
@@ -108,17 +122,19 @@ export function parseTutorResponse(raw: string): TutorResponse {
     return {
       reply: typeof obj.reply === "string" ? obj.reply : "",
       corrections: Array.isArray(obj.corrections) ? toCorrections(obj.corrections) : [],
+      polish: Array.isArray(obj.polish) ? toPolish(obj.polish) : [],
       rewrite: typeof obj.rewrite === "string" ? obj.rewrite : "",
     };
   } catch {
     // 不是 JSON(模型直接答了散文)→ 整段當成 reply
     if (!/"reply"\s*:/.test(text)) {
-      return { reply: raw.trim(), corrections: [], rewrite: "" };
+      return { reply: raw.trim(), corrections: [], polish: [], rewrite: "" };
     }
     // 截斷的 JSON → 盡量搶救,絕不可把原始 JSON 倒給用戶看
     return {
       reply: extractJsonString(text, "reply"),
       corrections: toCorrections(extractCompleteObjects(text, "corrections")),
+      polish: toPolish(extractCompleteObjects(text, "polish")),
       rewrite: extractJsonString(text, "rewrite"),
       truncated: true,
     };

@@ -8,12 +8,30 @@ export type Correction = {
   explanation: string;
 };
 
+/**
+ * 一條「可以更地道」的建議。
+ *
+ * 與 `Correction` 刻意分開:`Correction` 是真正的錯(文法、用錯字),
+ * `Polish` 則是文法正確但生硬、不像母語者的講法。兩者混在一起的話,
+ * 每句都會看似滿是錯誤,既打擊信心,亦分不清「必須改」同「可以更好」。
+ */
+export type Polish = {
+  /** 原文中生硬的片段。 */
+  original: string;
+  /** 較地道的講法。 */
+  suggestion: string;
+  /** 為何更自然(繁體中文)。 */
+  explanation: string;
+};
+
 /** 模型每次回覆的結構。 */
 export type TutorResponse = {
   /** 僅包含對話英文回覆(不含糾正/中文)。 */
   reply: string;
-  /** 針對最新一句的逐點糾正。 */
+  /** 針對最新一句的逐點糾正(真正的錯)。 */
   corrections: Correction[];
+  /** 文法正確但可以更地道的建議。 */
+  polish: Polish[];
   /** 用戶最新一句的完整正確／自然英文版本;無需修改則與原句相同。 */
   rewrite: string;
   /** 模型輸出被 max_tokens 截斷,內容是搶救回來的(可能不齊全)。 */

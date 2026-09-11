@@ -46,6 +46,60 @@ describe("parseTutorResponse — 正常情況", () => {
   });
 });
 
+describe("parseTutorResponse — polish(可以更地道)", () => {
+  it("解析 polish 欄位", () => {
+    const r = parseTutorResponse(
+      JSON.stringify({
+        reply: "Sounds good!",
+        corrections: [],
+        polish: [
+          {
+            original: "I very like this movie",
+            suggestion: "I really like this movie",
+            explanation: "英文不用「very」修飾動詞。",
+          },
+        ],
+        rewrite: "I very like this movie.",
+      })
+    );
+    expect(r.corrections).toEqual([]);
+    expect(r.polish).toHaveLength(1);
+    expect(r.polish[0].suggestion).toBe("I really like this movie");
+    expect(r.polish[0].explanation).toContain("very");
+  });
+
+  it("舊回覆沒有 polish 欄位就回空陣列(不可以是 undefined)", () => {
+    const r = parseTutorResponse('{"reply":"Hi","corrections":[],"rewrite":"Hi"}');
+    expect(r.polish).toEqual([]);
+  });
+
+  it("散文回覆一樣有 polish 空陣列", () => {
+    expect(parseTutorResponse("Just chatting.").polish).toEqual([]);
+  });
+
+  it("略過缺欄位的 polish 項目", () => {
+    const r = parseTutorResponse(
+      '{"reply":"ok","corrections":[],"polish":[{"original":"a"},' +
+        '{"original":"b","suggestion":"c"}],"rewrite":""}'
+    );
+    expect(r.polish).toHaveLength(1);
+    expect(r.polish[0].suggestion).toBe("c");
+    expect(r.polish[0].explanation).toBe("");
+  });
+
+  it("截斷時一樣搶救得到完整的 polish 項目", () => {
+    const raw =
+      '{"reply": "Nice!", "corrections": [], "polish": [' +
+      '{"original": "I have interest in it", "suggestion": "I\'m interested in it", ' +
+      '"explanation": "母語者較常用形容詞。"}, ' +
+      '{"original": "It is very difficult for me", "suggestion": "It\'s really tough';
+    const r = parseTutorResponse(raw);
+    expect(r.truncated).toBe(true);
+    expect(r.polish).toHaveLength(1); // 第二條斷了
+    expect(r.polish[0].suggestion).toBe("I'm interested in it");
+  });
+});
+
 describe("parseTutorResponse — 被 max_tokens 截斷", () => {
   // 迴歸:真實個案。輸出去到 corrections 中途就斷,舊版把整段原始 JSON
   // 倒去畫面上,而且糾正變空陣列(反而顯示「寫得很自然」)。

@@ -26,7 +26,7 @@ import {
   type ChatItem,
 } from "@/lib/convoStore";
 import { SCENARIOS, type ScenarioId } from "@/lib/scenarios";
-import type { ChatMessage, Correction, Level } from "@/lib/types";
+import type { ChatMessage, Correction, Level, Polish } from "@/lib/types";
 import { AVAILABLE_MODELS, CLIENT_DEFAULT_MODEL } from "@/lib/models";
 
 const SETTINGS_KEY = "english-tutor-settings-v1";
@@ -43,6 +43,7 @@ type StreamEvent =
       t: "f";
       reply: string;
       corrections: Correction[];
+      polish: Polish[];
       rewrite: string;
       truncated?: boolean;
       usage?: { totalTokens: number };
@@ -214,6 +215,8 @@ export default function Home() {
                   copy[i] = {
                     ...(copy[i] as UserItem),
                     corrections: payload.corrections,
+                    // 舊版本的回覆沒有這個欄位,故要容錯
+                    polish: payload.polish ?? [],
                     rewrite: payload.rewrite,
                   };
                   break;
@@ -396,6 +399,7 @@ export default function Home() {
               {it.corrections && (
                 <CorrectionCard
                   corrections={it.corrections}
+                  polish={it.polish}
                   rewrite={it.rewrite}
                   original={it.content}
                 />
