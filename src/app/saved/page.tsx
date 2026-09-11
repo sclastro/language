@@ -40,6 +40,7 @@ function nextReview(it: SavedItem, now = Date.now()): string {
 
 const KIND_LABEL: Record<SavedKind, string> = {
   correction: "Correction",
+  polish: "More natural",
   rewrite: "Full sentence",
   reply: "AI reply",
   vocab: "Word",
@@ -399,6 +400,7 @@ export default function SavedPage() {
             >
               <option value="all">All types</option>
               <option value="correction">Correction</option>
+              <option value="polish">More natural</option>
               <option value="rewrite">Full sentence</option>
               <option value="reply">AI reply</option>
               <option value="vocab">Word</option>

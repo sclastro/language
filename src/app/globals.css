@@ -19,6 +19,9 @@
   --warn: #b07d24;
   --warn-soft: #fbf3e2;
   --danger: #c0492f;
+  /* 地道建議:與糾正(琥珀)、正確(綠)都要一眼分得開,故用藍調 */
+  --info: #3a7b92;
+  --info-soft: #ecf3f6;
   --shadow: 0 1px 2px rgba(60, 45, 30, 0.05), 0 4px 16px rgba(60, 45, 30, 0.06);
   --shadow-sm: 0 1px 2px rgba(60, 45, 30, 0.06);
 }
@@ -282,6 +285,46 @@ input {
 .correction .rewrite-text {
   color: var(--text);
   font-weight: 500;
+}
+
+/* 「可以更地道」:文法本來正確,只是講法生硬。顏色刻意有別於糾正,
+   免得用戶以為自己又寫錯了。 */
+.correction.has-polish {
+  background: var(--info-soft);
+  border-left-color: var(--info);
+}
+.correction.has-polish .c-head {
+  color: var(--info);
+}
+.correction .polish {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border-strong);
+}
+.correction.has-polish .polish {
+  margin-top: 7px;
+  padding-top: 0;
+  border-top: none;
+}
+.correction .polish-head {
+  color: var(--info);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 7px;
+}
+.correction .p-item + .p-item {
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--border-strong);
+}
+/* 原句沒有錯,所以不加刪除線 —— 刪除線代表「這是錯的」。 */
+.correction .p-orig {
+  color: var(--muted);
+}
+.correction .p-better {
+  color: var(--info);
+  font-weight: 600;
 }
 
 /* ---- composer ---- */
@@ -935,6 +978,10 @@ input {
   background: var(--warn-soft);
   color: var(--warn);
 }
+.chip-polish {
+  background: var(--info-soft);
+  color: var(--info);
+}
 .chip-rewrite {
   background: var(--good-soft);
   color: var(--good);
@@ -1092,6 +1139,10 @@ input {
 .review-wrong {
   color: var(--danger);
 }
+/* 地道建議的原句本來沒有錯,所以只是淡色,不用「錯誤」的紅 */
+.review-stiff {
+  color: var(--muted);
+}
 .review-hint {
   color: var(--muted);
   font-size: 14px;
@@ -1099,7 +1150,8 @@ input {
 }
 
 /* 「寫得好自然」那張卡:訊息與 🔊 / ☆ 同一行 */
-.correction.ok .c-head {
+.correction.ok .c-head,
+.correction.has-polish .c-head {
   display: flex;
   align-items: center;
   gap: 4px;

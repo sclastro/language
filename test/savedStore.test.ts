@@ -132,6 +132,47 @@ describe("mergeSaved(雲端同步合併)", () => {
   });
 });
 
+describe("polish(可以更地道)類別", () => {
+  it("同一句可以同時存為 correction 同 polish,互不覆蓋", async () => {
+    const s = await freshStore();
+    s.addSaved("I'm interested in it", "polish", {
+      original: "I have interest in it",
+      explanation: "母語者較常用形容詞。",
+    });
+    s.addSaved("I'm interested in it", "correction");
+    const all = s.getAllSaved();
+    expect(all).toHaveLength(2);
+    expect(all.map((i) => i.kind).sort()).toEqual(["correction", "polish"]);
+  });
+
+  it("收藏時記得住 original 同 explanation(複習才有題目出)", async () => {
+    const s = await freshStore();
+    s.addSaved("I'm interested in it", "polish", {
+      original: "I have interest in it",
+      explanation: "母語者較常用形容詞。",
+    });
+    const [it0] = s.getAllSaved();
+    expect(it0.original).toBe("I have interest in it");
+    expect(it0.explanation).toBe("母語者較常用形容詞。");
+  });
+
+  // 迴歸:isKind 白名單漏咗新類別的話,匯入同合併都會把它默默改成 "reply",
+  // 用戶匯入備份之後就會發現所有地道建議變成「AI reply」。
+  it("匯入備份時 polish 類別唔會被當成 reply", async () => {
+    const s = await freshStore();
+    const added = s.importSavedItems([
+      item({ text: "It's really tough", kind: "polish", savedAt: 7 }),
+    ]);
+    expect(added).toBe(1);
+    expect(s.getAllSaved()[0].kind).toBe("polish");
+  });
+
+  it("雲端合併時 polish 類別一樣保得住", () => {
+    const [m] = mergeSaved([item({ text: "p", kind: "polish", savedAt: 1 })], []);
+    expect(m.kind).toBe("polish");
+  });
+});
+
 describe("刪除 → 同步", () => {
   it("removeSaved 會留低刪除記錄", async () => {
     const s = await freshStore();

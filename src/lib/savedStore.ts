@@ -1,7 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { initialSrs, reviewSrs, isDue, type SrsState } from "./srs";
 
-export type SavedKind = "correction" | "rewrite" | "reply" | "vocab";
+/**
+ * 收藏的類別。
+ *
+ * `polish` 與 `correction` 刻意分開:前者是文法本來正確、但可以更地道的講法,
+ * 後者是真正的錯。混在一起的話,複習時分不清「本來寫錯」同「本來冇錯,只是生硬」。
+ */
+export type SavedKind = "correction" | "polish" | "rewrite" | "reply" | "vocab";
 
 export type SavedItem = {
   id: string;
@@ -297,7 +303,13 @@ export function mergeTombstones(remote: Tombstones | undefined) {
 }
 
 function isKind(k: unknown): k is SavedKind {
-  return k === "correction" || k === "rewrite" || k === "reply" || k === "vocab";
+  return (
+    k === "correction" ||
+    k === "polish" ||
+    k === "rewrite" ||
+    k === "reply" ||
+    k === "vocab"
+  );
 }
 
 /** 匯出成 JSON 字串(供用戶備份至手機);連同刪除記錄一併帶走。 */
