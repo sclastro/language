@@ -45,6 +45,7 @@ type StreamEvent =
       corrections: Correction[];
       polish: Polish[];
       rewrite: string;
+      natural?: string;
       truncated?: boolean;
       usage?: { totalTokens: number };
     }
@@ -218,6 +219,7 @@ export default function Home() {
                     // 舊版本的回覆沒有這個欄位,故要容錯
                     polish: payload.polish ?? [],
                     rewrite: payload.rewrite,
+                    natural: payload.natural ?? "",
                   };
                   break;
                 }
@@ -384,7 +386,7 @@ export default function Home() {
           <div className="empty">
             Type something in English to start 👋
             <br />
-            The AI replies naturally and points out grammar and word-choice issues.
+            The AI replies naturally, fixes your mistakes, and shows how a native speaker would say it.
             <br />
             <span className="empty-hint">
               💡 Tap any word in a reply to look it up. Pick a 🎭 scenario for role-play.
@@ -401,6 +403,7 @@ export default function Home() {
                   corrections={it.corrections}
                   polish={it.polish}
                   rewrite={it.rewrite}
+                  natural={it.natural}
                   original={it.content}
                 />
               )}

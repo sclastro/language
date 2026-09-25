@@ -326,6 +326,23 @@ input {
   color: var(--info);
   font-weight: 600;
 }
+/* 整段地道版本:沿用 --info 藍,表明它屬於「可以更好」而非「寫錯了」。 */
+.correction .natural {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border-strong);
+}
+.correction .natural-head {
+  color: var(--info);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 5px;
+}
+.correction .natural-text {
+  color: var(--text);
+  font-weight: 500;
+}
 
 /* ---- composer ---- */
 .composer {

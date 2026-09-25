@@ -36,6 +36,23 @@ export function extractJsonString(src: string, field: string): string {
 }
 
 /**
+ * 同 `extractJsonString`,但字串必須有結尾引號才算數;被截斷的一律回空字串。
+ * 用於 `natural`:它是「示範答案」,顯示半段比不顯示更誤導(用戶會以為原文後半可以刪去)。
+ */
+export function extractClosedJsonString(src: string, field: string): string {
+  const m = src.match(new RegExp(`"${field}"\\s*:\\s*"`));
+  if (!m || m.index === undefined) return "";
+  for (let i = m.index + m[0].length; i < src.length; i++) {
+    if (src[i] === "\\") {
+      i++;
+      continue;
+    }
+    if (src[i] === '"') return extractJsonString(src, field);
+  }
+  return "";
+}
+
+/**
  * 串流途中抽出 reply 目前為止的內容(供前端逐字顯示)。
  * 遇到未閉合的引號即視為「目前到此為止」。
  */
@@ -124,11 +141,12 @@ export function parseTutorResponse(raw: string): TutorResponse {
       corrections: Array.isArray(obj.corrections) ? toCorrections(obj.corrections) : [],
       polish: Array.isArray(obj.polish) ? toPolish(obj.polish) : [],
       rewrite: typeof obj.rewrite === "string" ? obj.rewrite : "",
+      natural: typeof obj.natural === "string" ? obj.natural : "",
     };
   } catch {
     // 不是 JSON(模型直接答了散文)→ 整段當成 reply
     if (!/"reply"\s*:/.test(text)) {
-      return { reply: raw.trim(), corrections: [], polish: [], rewrite: "" };
+      return { reply: raw.trim(), corrections: [], polish: [], rewrite: "", natural: "" };
     }
     // 截斷的 JSON → 盡量搶救,絕不可把原始 JSON 倒給用戶看
     return {
@@ -136,6 +154,7 @@ export function parseTutorResponse(raw: string): TutorResponse {
       corrections: toCorrections(extractCompleteObjects(text, "corrections")),
       polish: toPolish(extractCompleteObjects(text, "polish")),
       rewrite: extractJsonString(text, "rewrite"),
+      natural: extractClosedJsonString(text, "natural"),
       truncated: true,
     };
   }

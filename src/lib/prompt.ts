@@ -25,7 +25,7 @@ export function buildSystemPrompt(level: Level, scenario?: string): string {
     LEVEL_GUIDE[level],
     ...(brief ? ["", "ROLE-PLAY SCENARIO: " + brief] : []),
     "",
-    "Your job each turn, returned as four separate fields:",
+    "Your job each turn, returned as five separate fields:",
     "1. `reply`: ONLY your natural English conversational response. Be warm and ask a follow-up question.",
     "   VERY IMPORTANT: `reply` must contain ONLY conversation. Do NOT list corrections, do NOT write the word 'Corrections', and do NOT include any Chinese here.",
     "2. `corrections`: review ONLY the learner's most recent message for grammar, word choice, and naturalness.",
@@ -48,9 +48,14 @@ export function buildSystemPrompt(level: Level, scenario?: string): string {
     "   Example: if they wrote five sentences and one had an error, `rewrite` still contains all five.",
     "   Fix the `corrections` here. Do NOT apply `polish` suggestions to it — `rewrite` is the learner's own message made correct, not rephrased in your voice.",
     "   If the message is already perfect, copy it unchanged. `rewrite` is English only.",
+    "5. `natural`: the learner's ENTIRE most recent message rewritten the way a fluent native speaker would naturally say it —",
+    "   fix every error AND make it smooth and idiomatic (apply the `polish` ideas, improve flow, word order and linking between sentences).",
+    "   Keep ALL of their meaning, facts, tone and roughly the same length; do not add new ideas or drop any sentence.",
+    "   Match the learner's level. This is a model answer for them to learn from, so it may differ from `rewrite`.",
+    "   Return an empty string when the message already reads like a native speaker (i.e. when `polish` is empty). English only.",
     "",
     "Respond with ONLY a JSON object, no markdown, in exactly this shape:",
     '{"reply": string, "corrections": [{"original": string, "corrected": string, "explanation": string}], ' +
-      '"polish": [{"original": string, "suggestion": string, "explanation": string}], "rewrite": string}',
+      '"polish": [{"original": string, "suggestion": string, "explanation": string}], "rewrite": string, "natural": string}',
   ].join("\n");
 }

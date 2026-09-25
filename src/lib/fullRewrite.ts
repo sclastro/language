@@ -51,3 +51,28 @@ export function fullCorrectedText(
   const synthesised = applyCorrections(orig, corrections);
   return synthesised ?? rw;
 }
+
+const norm = (s: string) => s.replace(/\s+/g, " ").trim();
+
+/**
+ * 決定卡片上的「Natural version」要顯示甚麼;回空字串即不顯示。
+ *
+ * 不顯示的情況:
+ *  - 模型沒有給(舊訊息、被截斷、或它認為已經夠自然)。
+ *  - 沒有糾正亦沒有地道建議:卡片正寫着「sounds natural」,再附一段「更自然版本」自相矛盾。
+ *  - 與完整正確版本(或原文)實質相同:重複一次只會佔位置。
+ */
+export function naturalVersion(
+  original: string | undefined,
+  corrections: Correction[],
+  polishCount: number,
+  rewrite: string | undefined,
+  natural: string | undefined
+): string {
+  const nat = (natural ?? "").trim();
+  if (!nat) return "";
+  if (corrections.length === 0 && polishCount === 0) return "";
+  const full = fullCorrectedText(original, corrections, rewrite);
+  if (norm(nat) === norm(full) || norm(nat) === norm(original ?? "")) return "";
+  return nat;
+}
