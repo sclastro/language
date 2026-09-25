@@ -4,7 +4,7 @@ import { getPoeClient, DEFAULT_MODEL, friendlyError } from "@/lib/poe";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-/** 生字查詢:提供字詞及其所在句子,回傳繁中解釋 + 一句新例句。 */
+/** 生字查詢:提供字詞及其所在句子,回傳英文釋義 + 一句新例句。 */
 export async function POST(request: Request) {
   let word = "";
   let sentence = "";

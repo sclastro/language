@@ -4,8 +4,8 @@ import { buildSystemPrompt } from "@/lib/prompt";
 describe("buildSystemPrompt", () => {
   const p = buildSystemPrompt("intermediate");
 
-  it("要求的 JSON 形狀包含四個欄位", () => {
-    for (const field of ["reply", "corrections", "polish", "rewrite"]) {
+  it("要求的 JSON 形狀包含五個欄位", () => {
+    for (const field of ["reply", "corrections", "polish", "rewrite", "natural"]) {
       expect(p).toContain(`"${field}"`);
     }
   });

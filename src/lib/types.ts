@@ -32,8 +32,13 @@ export type TutorResponse = {
   corrections: Correction[];
   /** 文法正確但可以更地道的建議。 */
   polish: Polish[];
-  /** 用戶最新一句的完整正確／自然英文版本;無需修改則與原句相同。 */
+  /** 用戶最新一句的完整正確版本(只改錯,不套用 polish);無需修改則與原句相同。 */
   rewrite: string;
+  /**
+   * 整段改寫成母語者的自然講法(改錯 + 套用地道建議)。已經夠自然就是空字串。
+   * 與 `rewrite` 刻意分開:`rewrite` 是「你自己那段,改正後」;這裡是「母語者會怎樣講」。
+   */
+  natural: string;
   /** 模型輸出被 max_tokens 截斷,內容是搶救回來的(可能不齊全)。 */
   truncated?: boolean;
 };

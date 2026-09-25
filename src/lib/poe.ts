@@ -15,7 +15,7 @@ export const DEFAULT_MODEL = process.env.POE_MODEL || CLIENT_DEFAULT_MODEL;
 /**
  * 語音模型(高質素 AI 語音,經 chat completions 呼叫):
  *  - TTS:elevenlabs-v3 → 回一條 poecdn 音訊 URL(自然人聲)。
- *  - STT:whisper-v3-large-t → 收 base64 音訊 file part,回文字。
+ *  - STT:cartesia-ink-whisper → 收 base64 音訊 file part,回文字。
  * ⚠️ 兩者都會消耗 Poe points。
  */
 export const DEFAULT_TTS_MODEL = process.env.POE_TTS_MODEL || "elevenlabs-v3";
@@ -42,7 +42,7 @@ export function getPoeClient(): OpenAI {
 }
 
 /**
- * 將 Poe/OpenAI SDK 拋出的原始英文錯誤,轉換成用戶看得明白的中文。
+ * 將 Poe/OpenAI SDK 拋出的原始錯誤,轉換成用戶看得明白的英文訊息(介面一律英文)。
  * 回 { message, status },直接可以放入 NextResponse.json。
  */
 export function friendlyError(err: unknown): { message: string; status: number } {

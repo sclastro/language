@@ -1,5 +1,5 @@
 import type { Correction, Polish } from "@/lib/types";
-import { fullCorrectedText } from "@/lib/fullRewrite";
+import { fullCorrectedText, naturalVersion } from "@/lib/fullRewrite";
 import SpeakerButton from "./SpeakerButton";
 import SaveButton from "./SaveButton";
 
@@ -36,17 +36,41 @@ function PolishSection({ polish }: { polish: Polish[] }) {
   );
 }
 
+/**
+ * 整段的地道版本 —— 回應「文法沒錯,但可否幫我改寫得更通順」。
+ *
+ * 放在逐點建議之後:先看每處為何要改,再看整段合起來的樣子。
+ * ★ 存成 `polish` 類別並附上原文,複習時便會出「Say it in a more natural way」的題。
+ */
+function NaturalSection({ text, original }: { text: string; original?: string }) {
+  if (!text) return null;
+  return (
+    <div className="natural">
+      <div className="natural-head">🌟 How a native speaker might say it</div>
+      <div className="rewrite-body">
+        <span className="natural-text">{text}</span>
+        <SpeakerButton text={text} title="Read the natural version aloud" />
+        <SaveButton text={text} kind="polish" original={original} />
+      </div>
+    </div>
+  );
+}
+
 export default function CorrectionCard({
   corrections,
   polish = [],
   rewrite,
+  natural,
   original,
 }: {
   corrections: Correction[];
   polish?: Polish[];
   rewrite?: string;
+  natural?: string;
   original?: string;
 }) {
+  const nat = naturalVersion(original, corrections, polish.length, rewrite, natural);
+
   if (corrections.length === 0) {
     // 寫啱嘅句子同樣值得收藏同聽發音,所以照樣要有 ☆ 同 🔊 —— 之前這裡
     // 得一句「Looks good」,結果自己寫啱嘅句子反而收藏唔到。
@@ -72,6 +96,7 @@ export default function CorrectionCard({
           )}
         </div>
         <PolishSection polish={polish} />
+        <NaturalSection text={nat} original={original} />
       </div>
     );
   }
@@ -114,6 +139,7 @@ export default function CorrectionCard({
       )}
 
       <PolishSection polish={polish} />
+      <NaturalSection text={nat} original={original} />
     </div>
   );
 }

@@ -13,6 +13,8 @@ export type UserItem = {
   /** 文法正確但可以更地道的建議。 */
   polish?: Polish[];
   rewrite?: string;
+  /** 整段的地道版本;舊訊息沒有此欄位。 */
+  natural?: string;
 };
 export type AssistantItem = { kind: "assistant"; content: string };
 export type ChatItem = UserItem | AssistantItem;

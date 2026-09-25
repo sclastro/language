@@ -16,7 +16,7 @@
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # vitest 單元測試(純函數:srs / pron / savedStore)
+npm test         # vitest 單元測試(只測 src/lib 的純函數,見 test/)
 npm run build    # 出 PR 前必須 build 過(等同 typecheck)
 npm start        # 執行 production build
 ```
@@ -47,7 +47,7 @@ npm start        # 執行 production build
   亦**不要用 `image_url` 傳送音訊**(只接受 image)、`input_audio` 會 hang。
 - 每次呼叫均扣同一個 points 池(約 1M/月)。因此須節省:裁剪歷史、快取語音。
 - **`max_tokens` 是上限而非收費**,只有真正生成出來的 token 才扣 points。設得太細(曾用 600)
-  會令長訊息的 JSON 中途被截斷,`JSON.parse` 失敗;現為 1600,並有搶救機制(見 `tutorJson`)。
+  會令長訊息的 JSON 中途被截斷,`JSON.parse` 失敗;加入 `natural` 後現為 2400,並有搶救機制(見 `tutorJson`)。
 - 更換 key 的方式:在 poe.com/api/keys **新增**一條不會令舊的失效;**regenerate** 才會令舊的失效。
   可多條並存,建議「一用途一 key」。
 
@@ -57,7 +57,7 @@ npm start        # 執行 production build
 
 ### API routes(`src/app/api/*`,全部 `runtime=nodejs`)
 - `chat` — **SSE 串流**。由未完成的 JSON 抽出 `reply` 逐字傳送(`{t:"r"}`),完成時傳送
-  `{t:"f", reply, corrections, polish, rewrite, truncated, usage}`。串流失敗會自動退回一次過模式。接受 `scenario`。
+  `{t:"f", reply, corrections, polish, rewrite, natural, truncated, usage}`。串流失敗會自動退回一次過模式。接受 `scenario`。
 - `tts` — 預設回傳 `{url}`;`{raw:true}` 則直接回傳音訊 bytes + `x-audio-url` header(供前端存入 IndexedDB)。
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
 - `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
@@ -97,20 +97,27 @@ npm start        # 執行 production build
   訊息長而只有一處錯時,它有時只回改動過的那一句,結果卡片同 ★ 收藏都只有一句。
   `rewrite` 明顯短過原文就改為用 `corrections` 把 original→corrected 套用回原訊息;
   片段對不上就寧願用模型那份,不會亂砌。
+  `naturalVersion()` 決定卡片上的整段地道版本是否顯示(見下文 `natural`)。
 - `tutorJson` — 解析模型回覆的 JSON。**被 `max_tokens` 截斷時要搶救**(抽出 reply、
   rewrite 及所有括號完整的糾正/地道建議),並回 `truncated: true`。切勿把原始 JSON 顯示給用戶。
-  沒有 `polish` 欄位的舊回覆一律補回空陣列,絕不可以是 `undefined`。
+  沒有 `polish` 欄位的舊回覆一律補回空陣列,`natural` 則補回空字串,絕不可以是 `undefined`。
+  **`natural` 被截斷就整個丟棄**(`extractClosedJsonString`):半段示範答案會令人以為後半段可以刪去。
 
 ### 「糾正」與「可以更地道」是兩回事
 模型單看文法的話,只要句子文法正確就甚麼都不說,實際上只做了 grammar check。
 中文母語者寫的英文往往文法無誤卻生硬(逐字直譯、搭配不自然、過於書面)。
-因此 `prompt.ts` 要求**四個欄位**,並把兩種回饋分開:
+因此 `prompt.ts` 要求**五個欄位**(`reply` 以外四個),並把兩種回饋分開:
 
 - `corrections` —— **真正的錯**(文法、時態、一致性、用錯字)。
 - `polish` —— 文法本來正確,但母語者不會這樣講;`{original, suggestion, explanation}`,
   每次一至三條,並明確指示「不要因為文法沒錯就甚麼都不說」。
 - `rewrite` —— **只套用 `corrections`,不可套用 `polish`**。否則「完整正確版本」會變成
   模型自己的口吻,★ 收藏到的就不再是你自己寫的句子。
+- `natural` —— **整段**改寫成母語者的講法(改錯 + 套用地道建議 + 理順句與句之間的銜接),
+  保留原意與所有句子。卡片上顯示為「🌟 How a native speaker might say it」,★ 存成 `polish`
+  類別並附原文,複習時出「Say it in a more natural way」。已經夠自然就回空字串。
+  顯示規則在 `naturalVersion()`:沒有糾正亦沒有建議時不顯示(卡片正寫着 sounds natural),
+  與完整正確版本實質相同時亦不顯示。**不可與 `rewrite` 合併**,理由同上。
 
 **不要為了省事把 polish 塞進 corrections**:那樣每句都像滿是錯誤,既打擊信心,
 亦分不清「必須改」同「可以更好」。介面上兩者亦分色(琥珀 vs `--info` 藍),
@@ -137,6 +144,10 @@ npm start        # 執行 production build
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
 - 新增 Poe 相關功能前,**先用 curl 實測 endpoint/model 名稱**再寫 code(此 codebase 許多決定都是這樣驗證得來)。
 - 出 PR 前 `npm test` 與 `npm run build` 都要綠。
+- 專案**沒有 ESLint 設定**;`npx next lint` 會彈出互動設定精靈,非互動環境不要執行。
+  型別檢查靠 `npm run build`。
+- 改動 prompt 之後,最好以真實 API 試一兩句(`npm run build && npx next start`,再 curl `/api/chat`),
+  單元測試只驗 prompt 的字眼,驗不到模型實際會否照做。
 - **改動收藏或對話資料的形狀就必須加測試**(`test/savedStore.test.ts`、`test/backup.test.ts`)。
   曾有兩個同類 bug:① 匯入備份遺失 `srs`/`meaning`/`example`;② 對話根本沒有備份到。
   單靠計算項目數量抓不到,必須驗欄位。
@@ -146,6 +157,6 @@ npm start        # 執行 production build
 - 錯誤須經 `friendlyError()`(`lib/poe.ts`)轉成清楚的英文訊息再顯示給用戶,不要直接彈出 Poe 的原始錯誤。
 
 ## Git / 部署
-- 開發 branch:`claude/poe-api-language-learning-mfhxur`。修改 → PR → merge 至 `main`。
+- 每個 Claude Code session 各自開 `claude/*` branch。修改 → PR → merge 至 `main`。
 - Vercel 連接 `main`,push 後自動 redeploy。修改 env 之後需手動 redeploy。
 - 有 service worker,線上更新後需 hard-refresh(手機 PWA 則完全關閉再開啟)。

@@ -15,7 +15,8 @@ export const maxDuration = 60;
 const MAX_HISTORY = 8; // 只保留最近數條以節省 token
 // max_tokens 是上限而非收費 —— 只有真正生成出來的 token 才扣 points。
 // 600 太細:訊息長一點,reply + corrections + rewrite 就會被截斷,JSON 缺尾。
-const MAX_TOKENS = 1600;
+// 加入 `natural`(整段再寫一次)後,長訊息的輸出約為原文三倍,故由 1600 提高至 2400。
+const MAX_TOKENS = 2400;
 const VALID_LEVELS: Level[] = ["beginner", "intermediate", "advanced"];
 
 type Body = {
