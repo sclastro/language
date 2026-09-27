@@ -139,6 +139,9 @@ npm start        # 執行 production build
 - **凡在 render 途中判斷瀏覽器能力(如 `navigator.mediaDevices`)都要搬入 `useEffect`**,
   否則 server 同 client 首次繪製不一致,React 會判定 hydration 失敗並把整棵樹重繪。
   麥克風掣就中過這一項。
+- 「Full corrected version」與「How a native speaker might say it」各有 🔊 ☆ 📋 三個掣。
+  📋 經 `lib/clipboard.ts` 複製(`navigator.clipboard` 失敗時退回 `execCommand`,照顧舊版 iOS/PWA)。
+  手機上句子獨佔一行、掣移到下一行,否則句子只剩約 150px 闊。
 - **只靠 `:hover` 的視覺提示在手機上等於沒有**(觸控無 hover)。可點按的字要有靜態樣式。
 - **樣式必須顧及手機**。`globals.css` 設有 `@media (max-width: 640px)` 區塊,將頂部各列壓成單行、
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
