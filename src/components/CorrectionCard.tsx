@@ -2,6 +2,7 @@ import type { Correction, Polish } from "@/lib/types";
 import { fullCorrectedText, naturalVersion } from "@/lib/fullRewrite";
 import SpeakerButton from "./SpeakerButton";
 import SaveButton from "./SaveButton";
+import CopyButton from "./CopyButton";
 
 /**
  * 「可以更地道」的建議。
@@ -51,6 +52,7 @@ function NaturalSection({ text, original }: { text: string; original?: string })
         <span className="natural-text">{text}</span>
         <SpeakerButton text={text} title="Read the natural version aloud" />
         <SaveButton text={text} kind="polish" original={original} />
+        <CopyButton text={text} title="Copy the natural version" />
       </div>
     </div>
   );
@@ -134,6 +136,7 @@ export default function CorrectionCard({
             <span className="rewrite-text">{full}</span>
             <SpeakerButton text={full} title="Read the full version aloud" />
             <SaveButton text={full} kind="rewrite" original={original} />
+            <CopyButton text={full} title="Copy the full corrected version" />
           </div>
         </div>
       )}

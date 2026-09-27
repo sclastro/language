@@ -217,6 +217,29 @@ input {
   opacity: 1;
   color: #d9a30a;
 }
+/* 複製掣:外觀與 🔊 / ☆ 一致;複製成功時短暫變成綠色 ✓ */
+.copier {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 7px;
+  opacity: 0.55;
+  color: var(--muted);
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.copier:hover {
+  opacity: 1;
+  background: var(--accent-soft);
+}
+.copier.on {
+  opacity: 1;
+  color: var(--good);
+  font-weight: 700;
+}
 
 /* ---- correction card ---- */
 .correction {
@@ -1184,4 +1207,17 @@ input {
 .rate-select {
   flex: 0 0 auto !important;
   min-width: 0;
+}
+
+/* 完整正確版本／地道版本:手機上句子獨佔一行,🔊 ☆ 📋 移到下一行靠右。
+   三個掣與句子並排的話,390px 螢幕上句子只剩約 150px 闊,一行兩三個字。 */
+@media (max-width: 640px) {
+  .correction .rewrite-body {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .correction .rewrite-text,
+  .correction .natural-text {
+    flex-basis: 100%;
+  }
 }
