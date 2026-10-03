@@ -4,7 +4,7 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "English Tutor",
-  description: "Practise English conversation with AI and get instant grammar and word-choice corrections.",
+  description: "Practise English conversation with AI, get instant corrections, and turn Chinese into simple spoken English.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

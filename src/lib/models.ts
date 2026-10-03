@@ -15,6 +15,9 @@ export const AVAILABLE_MODELS = [
   "gemini-3.1-pro",
 ] as const;
 
+/** 前端設定(難度、模型)存放的 localStorage key;對話頁與翻譯頁共用。 */
+export const SETTINGS_KEY = "english-tutor-settings-v1";
+
 /** 前端顯示用的預設值(實際生效的預設由 server 端 POE_MODEL env 決定)。 */
 export const CLIENT_DEFAULT_MODEL: (typeof AVAILABLE_MODELS)[number] =
   "claude-opus-4.8";

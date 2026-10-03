@@ -44,6 +44,7 @@ const KIND_LABEL: Record<SavedKind, string> = {
   rewrite: "Full sentence",
   reply: "AI reply",
   vocab: "Word",
+  translation: "Translation",
 };
 
 function fmt(ts: number): string {
@@ -217,7 +218,9 @@ export default function SavedPage() {
           !q ||
           i.text.toLowerCase().includes(q) ||
           (i.meaning ?? "").toLowerCase().includes(q) ||
-          (i.example ?? "").toLowerCase().includes(q)
+          (i.example ?? "").toLowerCase().includes(q) ||
+          // 譯文可以用當初輸入的中文找回來
+          (i.kind === "translation" && (i.original ?? "").toLowerCase().includes(q))
       )
       .sort((a, b) => (oldestFirst ? a.savedAt - b.savedAt : b.savedAt - a.savedAt));
   }, [items, oldestFirst, query, kindFilter]);
@@ -404,6 +407,7 @@ export default function SavedPage() {
               <option value="rewrite">Full sentence</option>
               <option value="reply">AI reply</option>
               <option value="vocab">Word</option>
+              <option value="translation">Translation</option>
             </select>
           </div>
 
@@ -479,6 +483,9 @@ export default function SavedPage() {
                     <button className="saved-more" onClick={() => toggleExpand(it.id)}>
                       {expanded.has(it.id) ? "Show less" : "Show more"}
                     </button>
+                  )}
+                  {it.kind === "translation" && it.original && (
+                    <div className="saved-vocab-meaning">{it.original}</div>
                   )}
                   {it.kind === "vocab" && it.meaning && (
                     <div className="saved-vocab-meaning">

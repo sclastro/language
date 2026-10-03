@@ -192,3 +192,33 @@ describe("刪除 → 同步", () => {
     expect(s.getAllSaved()).toHaveLength(1);
   });
 });
+
+describe("translation(中譯英)類別", () => {
+  // 迴歸防線:新類別若漏加入 isKind() 白名單,匯入/同步會默默變成 "reply"
+  it("匯入備份時保住 translation 類別及中文原文", async () => {
+    const s = await freshStore();
+    s.importSavedItems([
+      item({ text: "Can I pay by card?", kind: "translation", original: "可唔可以碌卡?", savedAt: 9 }),
+    ]);
+    const [it0] = s.getAllSaved();
+    expect(it0.kind).toBe("translation");
+    expect(it0.original).toBe("可唔可以碌卡?");
+  });
+
+  it("雲端合併時 translation 類別一樣保得住", () => {
+    const [m] = mergeSaved(
+      [item({ text: "t", kind: "translation", original: "中文", savedAt: 1 })],
+      []
+    );
+    expect(m.kind).toBe("translation");
+    expect(m.original).toBe("中文");
+  });
+
+  it("收藏時存低中文原文,複習時先有題目可出", async () => {
+    const s = await freshStore();
+    s.addSaved("Sorry, I'm running late.", "translation", { original: "唔好意思,我遲少少到" });
+    const [it0] = s.getAllSaved();
+    expect(it0.kind).toBe("translation");
+    expect(it0.original).toBe("唔好意思,我遲少少到");
+  });
+});

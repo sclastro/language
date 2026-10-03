@@ -5,7 +5,8 @@
 ## 這是什麼
 
 **英文對話練習工具**：中文母語者以英文與 AI 對話,即時糾正語法/用詞(糾正解釋用繁中),
-另有語音、收藏、間隔重複複習、情境對話、生字簿等學習功能。個人使用,部署於 Vercel。
+另有語音、收藏、間隔重複複習、情境對話、生字簿等學習功能,以及**中譯英**(把打出來的中文,
+包括廣東話口語句式,變成即時可用的簡單口語英文)。個人使用,部署於 Vercel。
 
 - 技術:**Next.js (App Router) + TypeScript**,無資料庫(狀態存於 browser)。
 - AI:全部經 **Poe API**(OpenAI-compatible),一條 key 涵蓋 chat 及語音。
@@ -61,6 +62,8 @@ npm start        # 執行 production build
 - `tts` — 預設回傳 `{url}`;`{raw:true}` 則直接回傳音訊 bytes + `x-audio-url` header(供前端存入 IndexedDB)。
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
 - `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
+- `translate` — 中文 → 簡單口語英文,回傳 `{english, alternatives(0–2 個), usage}`。非串流,`max_tokens` 600,
+  輸入上限 `MAX_INPUT_CHARS`(1000 字元)。沿用對話頁揀選的模型。
 - `export` — 將多句 TTS **去除 ID3 後串接成一個 MP3** 下載(重用 client 快取 URL 以節省 points)。
 - `sync` — 雲端同步(Upstash),未設定時回傳 `{configured:false}`。v3 payload:
   `{items, tombstones, convos, convoTombstones}` —— **收藏同對話都會同步**。
@@ -72,7 +75,7 @@ npm start        # 執行 production build
   含刪除記錄,可同步/備份(逐個對話 last-write-wins;空白對話不同步;上限 30 個)。
   `migrateConvos()` 在載入時修復舊資料:曾被當成訊息儲存的原始 JSON,以及中文舊標題。
   是 idempotent 的,見 `test/migrate.test.ts`。
-- `savedStore` — 收藏(correction/polish/rewrite/reply/vocab),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
+- `savedStore` — 收藏(correction/polish/rewrite/reply/vocab/translation),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
   **新增類別時必須同時更新 `isKind()` 白名單**,否則匯入備份及雲端合併都會把它默默改成 `"reply"`。
   更正/完整句會一併存 `original`(你當時寫錯的版本)同 `explanation`,**複習時才有題目可出**。
 - `srs` — 間隔重複(1→3→7→14→30→60 日)。
@@ -86,6 +89,13 @@ npm start        # 執行 production build
   **必須用同一個上限**:曾經一邊 600 字元、一邊冇上限,而匯出又會重用播放時的快取,
   導致同一句「播過先匯出」同「未播過就匯出」出到唔同音訊。截斷時要回報,不可靜靜截短。
 - `pron` — 跟讀評分(LCS 逐字比對,純本地)。
+- `translate` — 中譯英的 prompt、解析(`parseTranslation`)及歷史處理(`addToHistory`、`sanitizeHistory`),
+  全部是純函數。**輸入是打出來的中文文字,不涉及語音辨識**;prompt 要求看得懂廣東話口語(唔/咗/嘅/冇…)。
+  風格:日常口語、短句、常用字(約 B1),自然但不浮誇,保留語氣,只翻譯、不回答句中的問題。
+  被截斷時只取完整的 `english`,不可顯示原始 JSON 或半句。
+  翻譯歷史只存本機(`english-tutor-translations-v1`,上限 50 項,不同步);值得留低的用 ☆ 收藏。
+  收藏為 `translation` 類別:`text` 是英文、`original` 是中文 → 複習時顯示中文,
+  提示「Say it in English」,原文不加紅色(它不是寫錯)。
 - `scenarios` — 情境 role-play 清單。
 - `backup` — 組裝/還原備份檔(收藏 + 對話)。特意由頁面抽出來,方便測試。
 - `textExport` — 將**用戶在清單上揀選的收藏**匯出成純文字(一項一段,只有句子本身)。
@@ -127,6 +137,7 @@ npm start        # 執行 production build
 - `/` 對話(串流、情境、多對話、點字查生字、用量列)
 - `/saved` 收藏(揀選後播放/匯出 MP3/匯出純文字、備份 JSON、雲端同步)
 - `/review` 今日複習(SRS 卡 + 跟讀評分)
+- `/translate` 中譯英(結果卡附 🔊 ☆ 📋;最新一項貼近輸入框;「Clear history」放清單末端,不放頂部)
 - `/login` 密碼閘
 
 `middleware.ts` 保護頁面及成本較高的 API;新增受保護 route 記得加入 matcher。
@@ -142,6 +153,9 @@ npm start        # 執行 production build
 - 「Full corrected version」與「How a native speaker might say it」各有 🔊 ☆ 📋 三個掣。
   📋 經 `lib/clipboard.ts` 複製(`navigator.clipboard` 失敗時退回 `execCommand`,照顧舊版 iOS/PWA)。
   手機上句子獨佔一行、掣移到下一行,否則句子只剩約 150px 闊。
+- **中文輸入框按 Enter 送出時,必須略過輸入法選字**(`e.nativeEvent.isComposing` 或 `keyCode === 229`),
+  否則用倉頡/速成/拼音選字時一按 Enter 就會送出半句。見 `translate/page.tsx`。
+- `.ghost-btn` 有全域基本樣式,`a.ghost-btn` 另設去底線;以 `<Link>` 做的掣否則會變成藍色底線連結。
 - **只靠 `:hover` 的視覺提示在手機上等於沒有**(觸控無 hover)。可點按的字要有靜態樣式。
 - **樣式必須顧及手機**。`globals.css` 設有 `@media (max-width: 640px)` 區塊,將頂部各列壓成單行、
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
