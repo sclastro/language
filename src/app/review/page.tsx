@@ -40,6 +40,8 @@ export default function ReviewPage() {
   // 地道建議:原句本來冇文法錯,只是生硬。所以不可以標成紅色的「錯」,
   // 提示語亦要由「講得啱」改為「講得自然」,否則會令人以為自己當時寫錯了。
   const isPolish = current?.kind === "polish";
+  // 中譯英:原文是中文,不是「寫錯」亦不是「生硬」,出題方式是「用英文講出來」。
+  const isTranslation = current?.kind === "translation";
   /**
    * 有原句就出題:先只顯示你當時寫錯的版本,由你講出正確講法,再揭曉。
    * 冇原句(舊資料或 AI 回應)就只能直接顯示 —— 見下面的提示。
@@ -87,20 +89,35 @@ export default function ReviewPage() {
 
           <div className="review-card">
             <div className="review-kind">
-              {isVocab ? "Word" : isPolish ? "More natural" : "Sentence"} · saved{" "}
+              {isVocab
+                ? "Word"
+                : isPolish
+                  ? "More natural"
+                  : isTranslation
+                    ? "Translation"
+                    : "Sentence"}{" "}
+              · saved{" "}
               {new Date(current.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </div>
 
             {hasPrompt && !revealed ? (
               <>
-                <div className="review-prompt-label">You wrote</div>
-                <div className={`review-text ${isPolish ? "review-stiff" : "review-wrong"}`}>
+                <div className="review-prompt-label">
+                  {isTranslation ? "You wanted to say" : "You wrote"}
+                </div>
+                <div
+                  className={`review-text ${
+                    isTranslation ? "" : isPolish ? "review-stiff" : "review-wrong"
+                  }`}
+                >
                   {current.original}
                 </div>
                 <div className="review-hint">
-                  {isPolish
-                    ? "Say it in a more natural way, then check."
-                    : "Say it correctly, then check."}
+                  {isTranslation
+                    ? "Say it in English, then check."
+                    : isPolish
+                      ? "Say it in a more natural way, then check."
+                      : "Say it correctly, then check."}
                 </div>
               </>
             ) : (
@@ -116,7 +133,9 @@ export default function ReviewPage() {
                   ? "Show meaning"
                   : isPolish
                     ? "Show the natural version"
-                    : "Show correct version"}
+                    : isTranslation
+                      ? "Show the English"
+                      : "Show correct version"}
               </button>
             )}
             {isVocab && revealed && (

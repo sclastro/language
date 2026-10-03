@@ -27,9 +27,7 @@ import {
 } from "@/lib/convoStore";
 import { SCENARIOS, type ScenarioId } from "@/lib/scenarios";
 import type { ChatMessage, Correction, Level, Polish } from "@/lib/types";
-import { AVAILABLE_MODELS, CLIENT_DEFAULT_MODEL } from "@/lib/models";
-
-const SETTINGS_KEY = "english-tutor-settings-v1";
+import { AVAILABLE_MODELS, CLIENT_DEFAULT_MODEL, SETTINGS_KEY } from "@/lib/models";
 
 const LEVELS: { value: Level; label: string }[] = [
   { value: "beginner", label: "Beginner" },
@@ -327,6 +325,9 @@ export default function Home() {
           </select>
         </div>
         <div className="ctl-nav">
+          <Link className="ghost-btn" href="/translate" title="Chinese → simple English">
+            🌐 <span className="nav-label">Translate</span>
+          </Link>
           <Link className="ghost-btn" href="/review" title="Today's review">
             📅 <span className="nav-label">Review</span>
             {dueCount > 0 && <span className="nav-count">{dueCount}</span>}

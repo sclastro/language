@@ -46,11 +46,13 @@ export const config = {
     "/login",
     "/saved",
     "/review",
+    "/translate",
     "/api/chat",
     "/api/tts",
     "/api/stt",
     "/api/export",
     "/api/vocab",
+    "/api/translate",
     "/api/sync",
   ],
 };

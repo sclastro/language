@@ -53,6 +53,24 @@ input {
   color: inherit;
 }
 
+/* 以 <Link> 做的掣:沒有這條,瀏覽器會把它畫成藍色底線連結。 */
+a.ghost-btn {
+  color: inherit;
+  text-decoration: none;
+}
+/* ghost-btn 的基本外觀;頂部列、對話列等處另有較具體的規則覆蓋。
+   沒有這條的話,卡片內的 ghost-btn(例如複習卡的「Show …」)只得瀏覽器預設樣式。 */
+.ghost-btn {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.ghost-btn:hover {
+  border-color: var(--accent);
+}
+
 .app {
   max-width: 760px;
   margin: 0 auto;
@@ -1030,6 +1048,10 @@ input {
   background: var(--accent-soft);
   color: var(--accent);
 }
+.chip-translation {
+  background: #e6f0e9;
+  color: #3d7a55;
+}
 .saved-actions {
   display: flex;
   align-items: center;
@@ -1218,6 +1240,105 @@ input {
   }
   .correction .rewrite-text,
   .correction .natural-text {
+    flex-basis: 100%;
+  }
+}
+
+/* ---- 中譯英(/translate) ----
+   一項一張卡:上面是你輸入的中文(淡色),下面是可以即時用的英文(大字)。 */
+.tr-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto 12px;
+}
+.tr-zh {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  white-space: pre-wrap;
+  margin-bottom: 6px;
+}
+.tr-zh > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tr-remove {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.tr-remove:hover {
+  opacity: 1;
+}
+.tr-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.tr-line + .tr-line {
+  margin-top: 8px;
+}
+.tr-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text);
+}
+.tr-main .tr-text {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.tr-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.tr-alts {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border-strong);
+}
+.tr-alts-head {
+  color: var(--info);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.tr-clear {
+  align-self: center;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.tr-pending .typing {
+  padding: 0;
+}
+/* 手機:英文獨佔一行,掣放下一行靠右(同糾正卡一樣,免得句子被擠窄) */
+@media (max-width: 640px) {
+  .tr-card {
+    padding: 10px 12px;
+  }
+  .tr-line {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .tr-text {
     flex-basis: 100%;
   }
 }

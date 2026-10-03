@@ -7,7 +7,14 @@ import { initialSrs, reviewSrs, isDue, type SrsState } from "./srs";
  * `polish` 與 `correction` 刻意分開:前者是文法本來正確、但可以更地道的講法,
  * 後者是真正的錯。混在一起的話,複習時分不清「本來寫錯」同「本來冇錯,只是生硬」。
  */
-export type SavedKind = "correction" | "polish" | "rewrite" | "reply" | "vocab";
+export type SavedKind =
+  | "correction"
+  | "polish"
+  | "rewrite"
+  | "reply"
+  | "vocab"
+  /** 中譯英:`text` 是英文譯文,`original` 是用戶輸入的中文。 */
+  | "translation";
 
 export type SavedItem = {
   id: string;
@@ -308,7 +315,8 @@ function isKind(k: unknown): k is SavedKind {
     k === "polish" ||
     k === "rewrite" ||
     k === "reply" ||
-    k === "vocab"
+    k === "vocab" ||
+    k === "translation"
   );
 }
 
