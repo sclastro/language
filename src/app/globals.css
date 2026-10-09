@@ -1294,6 +1294,8 @@ a.ghost-btn {
   flex: 1 1 auto;
   min-width: 0;
   color: var(--text);
+  /* 保留段落與 1. 2. 3. 分行;沒有這條,整份通告會擠成一段 */
+  white-space: pre-wrap;
 }
 .tr-main .tr-text {
   font-size: 18px;

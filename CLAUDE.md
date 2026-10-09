@@ -62,7 +62,7 @@ npm start        # 執行 production build
 - `tts` — 預設回傳 `{url}`;`{raw:true}` 則直接回傳音訊 bytes + `x-audio-url` header(供前端存入 IndexedDB)。
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
 - `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
-- `translate` — 中文 → 簡單口語英文,回傳 `{english, alternatives(0–2 個), usage}`。非串流,`max_tokens` 600,
+- `translate` — 中文 → 簡單口語英文,回傳 `{english, alternatives(0–2 個), usage}`。非串流,`max_tokens` 1500,
   輸入上限 `MAX_INPUT_CHARS`(1000 字元)。沿用對話頁揀選的模型。
 - `export` — 將多句 TTS **去除 ID3 後串接成一個 MP3** 下載(重用 client 快取 URL 以節省 points)。
 - `sync` — 雲端同步(Upstash),未設定時回傳 `{configured:false}`。v3 payload:
@@ -93,6 +93,10 @@ npm start        # 執行 production build
   全部是純函數。**輸入是打出來的中文文字,不涉及語音辨識**;prompt 要求看得懂廣東話口語(唔/咗/嘅/冇…)。
   風格:日常口語、短句、常用字(約 B1),自然但不浮誇,保留語氣,只翻譯、不回答句中的問題。
   被截斷時只取完整的 `english`,不可顯示原始 JSON 或半句。
+  **長訊息(多段、分項)曾被拆成兩半**:模型只譯第一段就收尾,再「Wait, let me give the full translation」
+  輸出第二個物件;或把後半段塞進 `alternatives`。現時 prompt 要求整段放入 `english`、只輸出一個物件、
+  長訊息的 `alternatives` 必須為空;`parseTranslation` 亦會逐個拆開頂層物件,**取最後一個有效的**。
+  `.tr-text` 用 `white-space: pre-wrap`,否則分段與 1. 2. 3. 會擠成一段。
   翻譯歷史只存本機(`english-tutor-translations-v1`,上限 50 項,不同步);值得留低的用 ☆ 收藏。
   收藏為 `translation` 類別:`text` 是英文、`original` 是中文 → 複習時顯示中文,
   提示「Say it in English」,原文不加紅色(它不是寫錯)。
