@@ -41,12 +41,52 @@ export function buildTranslatePrompt(): string {
     "- Translate everything the user wrote, keeping the order. Do not answer questions in the text — just translate them.",
     "- If the input is already English, rewrite it as simple, natural spoken English.",
     "",
-    "`alternatives`: zero to two other natural ways to say the same thing that are genuinely useful,",
-    "for example a more polite version or a shorter one. Return an empty array when the main version is enough.",
+    "Long input: the text may have several paragraphs, a greeting, or a numbered list.",
+    "`english` must ALWAYS contain the translation of the WHOLE text — every paragraph and every list item.",
+    "Keep the layout: a blank line (\\n\\n) between paragraphs and each list item on its own line (\\n).",
+    "Never split the translation across fields: nothing from the text may appear only in `alternatives`.",
     "",
-    "Output English only. Respond with ONLY a JSON object, no markdown:",
+    "`alternatives`: zero to two other natural ways to say the WHOLE text that are genuinely useful,",
+    "for example a more polite version or a shorter one. Each one is a complete version, never a part.",
+    "Return an empty array when the main version is enough, and ALWAYS an empty array when the input",
+    "is longer than about three sentences or has more than one paragraph.",
+    "",
+    "Output English only. Respond with exactly ONE JSON object and nothing before or after it, no markdown.",
+    "Write the complete translation the first time; never output a second, corrected object.",
+    "Use exactly this shape:",
     '{"english": string, "alternatives": [string]}',
   ].join("\n");
+}
+
+/**
+ * 找出文字中所有括號完整的頂層 JSON 物件(會略過字串內的括號)。
+ *
+ * ⚠️ 模型有時先輸出一個只譯了第一段的物件,接着寫「Wait, let me give the full translation.」
+ * 再輸出完整的第二個物件。舊做法取「第一個 { 至最後一個 }」,兩個物件連在一起 parse 失敗,
+ * 結果退回抽第一個 `english` —— 長訊息只得第一段。所以要逐個物件拆開。
+ */
+function topLevelObjects(src: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inStr = false;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inStr) {
+      if (ch === "\\") i++;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = depth > 0;
+    else if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}" && depth > 0) {
+      depth--;
+      if (depth === 0) out.push(src.slice(start, i + 1));
+    }
+  }
+  return out;
 }
 
 /** 解析模型回覆;不是 JSON 就把整段當成譯文(總好過甚麼都沒有)。 */
@@ -54,11 +94,11 @@ export function parseTranslation(raw: string): Translation {
   let text = raw.trim();
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fence) text = fence[1].trim();
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start !== -1 && end > start) {
+  // 有多個物件時取最後一個有效的:那是模型自我更正後的完整版本
+  const candidates = topLevelObjects(text).reverse();
+  for (const cand of candidates) {
     try {
-      const obj = JSON.parse(text.slice(start, end + 1)) as Partial<Translation>;
+      const obj = JSON.parse(cand) as Partial<Translation>;
       const english = typeof obj.english === "string" ? obj.english.trim() : "";
       if (english) {
         const seen = new Set([english.toLowerCase()]);
@@ -75,7 +115,7 @@ export function parseTranslation(raw: string): Translation {
         return { english, alternatives };
       }
     } catch {
-      /* 退回下面 */
+      /* 試下一個 */
     }
   }
   // 截斷或格式不對:不可把原始 JSON 顯示給用戶

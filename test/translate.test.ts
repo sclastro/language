@@ -25,6 +25,17 @@ describe("buildTranslatePrompt", () => {
     expect(p).toContain("Do not answer questions in the text");
   });
 
+  // 長訊息曾被拆成兩半:第一段放 english,其餘塞進 alternatives
+  it("長訊息必須整段放入 english,不可拆到 alternatives", () => {
+    expect(p).toContain("translation of the WHOLE text");
+    expect(p).toContain("nothing from the text may appear only in `alternatives`");
+    expect(p).toContain("ALWAYS an empty array when the input");
+  });
+
+  it("只輸出一個物件,不可自我更正再輸出第二個", () => {
+    expect(p).toContain("exactly ONE JSON object");
+  });
+
   it("JSON 形狀", () => {
     expect(p).toContain('{"english": string, "alternatives": [string]}');
   });
@@ -71,6 +82,29 @@ describe("parseTranslation", () => {
     const r = parseTranslation('{"english": "I\'ll be there in ten minutes.", "alternatives": ["I\'ll be th');
     expect(r.english).toBe("I'll be there in ten minutes.");
     expect(r.alternatives).toEqual([]);
+  });
+
+  // 迴歸:真實個案。長通告只譯了第一段就收尾,接着自我更正再輸出完整版本;
+  // 舊版取第一個 { 至最後一個 },兩個物件連在一起 parse 失敗,結果只顯示第一段。
+  it("模型自我更正、輸出兩個物件時,取最後那個完整版本", () => {
+    const r = parseTranslation(
+      '{"english": "Hi Mr. Daniel, there will be a fire drill.", "alternatives": []}\n\n' +
+        "Wait, let me give the full translation.\n\n" +
+        '{"english": "Hi Mr. Daniel, there will be a fire drill.\\n\\nPlease remind the students to:\\n1. Turn off the lights.\\n2. Go down the back stairs.", "alternatives": []}'
+    );
+    expect(r.english).toContain("1. Turn off the lights.");
+    expect(r.english).toContain("2. Go down the back stairs.");
+    expect(r.english.split("\n")).toHaveLength(5); // 段落及分項的換行要保留
+  });
+
+  it("最後一個物件壞了就退回前一個有效的", () => {
+    const r = parseTranslation('{"english":"First."} {"english": 3}');
+    expect(r.english).toBe("First.");
+  });
+
+  it("字串內的括號不會擾亂物件切分", () => {
+    const r = parseTranslation('{"english":"Use {curly} braces } here.","alternatives":[]}');
+    expect(r.english).toBe("Use {curly} braces } here.");
   });
 
   it("english 本身都斷了就回空字串(由 API 報錯),不顯示半句", () => {

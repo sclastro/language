@@ -10,8 +10,9 @@ import { buildTranslatePrompt, parseTranslation, MAX_INPUT_CHARS } from "@/lib/t
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-// 譯文是短句,600 已足夠;只按實際生成的 token 扣 points。
-const MAX_TOKENS = 600;
+// 只按實際生成的 token 扣 points,上限寬鬆無妨。曾用 600:一千字的中文通告譯成英文
+// 加上 JSON 已接近上限,截斷後只剩空白或半句,所以提高至 1500。
+const MAX_TOKENS = 1500;
 
 /** 中文 → 簡單口語英文。回 `{english, alternatives, usage}`。 */
 export async function POST(request: Request) {
