@@ -10,7 +10,9 @@ export const maxDuration = 60;
  * 因此:① 限制句數 ② 併發生成 ③ 預留安全時間,時限將至便不再開新工作,
  *       ④ 不可靜默跳過失敗的句子,必須告知用戶。
  */
-const MAX_ITEMS = 30;
+// 篇章轉語音(/listen)一篇 3000 字約分成 17–34 段,而且送來時已附快取 URL(只需下載串接),
+// 所以上限放寬至 40。
+const MAX_ITEMS = 40;
 const CONCURRENCY = 4;
 const TIME_BUDGET_MS = 45_000;
 

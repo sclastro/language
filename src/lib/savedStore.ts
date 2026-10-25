@@ -14,7 +14,12 @@ export type SavedKind =
   | "reply"
   | "vocab"
   /** 中譯英:`text` 是英文譯文,`original` 是用戶輸入的中文。 */
-  | "translation";
+  | "translation"
+  /**
+   * 主題句庫(/learn)生成的句子:`text` 是英文,`original` 是中文意思,
+   * `explanation` 是用法提示。複習方式與 `translation` 相同(看中文,講英文)。
+   */
+  | "phrase";
 
 export type SavedItem = {
   id: string;
@@ -316,7 +321,8 @@ function isKind(k: unknown): k is SavedKind {
     k === "rewrite" ||
     k === "reply" ||
     k === "vocab" ||
-    k === "translation"
+    k === "translation" ||
+    k === "phrase"
   );
 }
 

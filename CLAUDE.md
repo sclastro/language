@@ -6,7 +6,8 @@
 
 **英文對話練習工具**：中文母語者以英文與 AI 對話,即時糾正語法/用詞(糾正解釋用繁中),
 另有語音、收藏、間隔重複複習、情境對話、生字簿等學習功能,以及**中譯英**(把打出來的中文,
-包括廣東話口語句式,變成即時可用的簡單口語英文)。個人使用,部署於 Vercel。
+包括廣東話口語句式,變成即時可用的簡單口語英文)、**主題句庫**(AI 按主題提供句子,用戶被動地讀、聽、
+揀句收藏)、**Quiz**,以及**篇章轉語音**(貼上英文,原文照讀)。個人使用,部署於 Vercel。
 
 - 技術:**Next.js (App Router) + TypeScript**,無資料庫(狀態存於 browser)。
 - AI:全部經 **Poe API**(OpenAI-compatible),一條 key 涵蓋 chat 及語音。
@@ -62,9 +63,16 @@ npm start        # 執行 production build
 - `tts` — 預設回傳 `{url}`;`{raw:true}` 則直接回傳音訊 bytes + `x-audio-url` header(供前端存入 IndexedDB)。
 - `stt` — 接收 base64 音訊,回傳 `{text}`。
 - `vocab` — 查詢生字,回傳 `{meaning(英文), example}`。
-- `translate` — 中文 → 簡單口語英文,回傳 `{english, alternatives(0–2 個), usage}`。非串流,`max_tokens` 1500,
-  輸入上限 `MAX_INPUT_CHARS`(1000 字元)。沿用對話頁揀選的模型。
+- `translate` — 中文 → 簡單口語英文,回傳 `{english, alternatives(0–2 個), usage}`。非串流。
+  輸入上限 `MAX_INPUT_CHARS`(**3000** 字元)。超過 `CHUNK_CHARS`(1000)就由 `splitForTranslation()`
+  在換行或句末切段,**各段併發翻譯**再按原本的分隔接回(`joinTranslations`);每段 `max_tokens` 2500,
+  `maxDuration` 60。一次過譯 3000 字會超出 serverless 時限,所以要分段。分段時 `alternatives` 一律為空。
+  沿用對話頁揀選的模型。
+- `phrases` — 主題句庫,回傳 `{title, items, truncated, usage}`。接受 `avoid`(同主題已出過的句子),
+  否則「＋ More」只會得到差不多的十句。被截斷時搶救括號完整的項目(`parsePhraseSet`)。
+- `quiz` — 為多項選擇題整批生成干擾項,回傳 `{distractors: (string[] | null)[]}`,按輸入次序對齊。
 - `export` — 將多句 TTS **去除 ID3 後串接成一個 MP3** 下載(重用 client 快取 URL 以節省 points)。
+  上限 40 項(篇章轉語音一篇最多約 34 段)。
 - `sync` — 雲端同步(Upstash),未設定時回傳 `{configured:false}`。v3 payload:
   `{items, tombstones, convos, convoTombstones}` —— **收藏同對話都會同步**。
   超過 900KB 會捨棄 convos 只同步收藏並回一個 `warning`(寧願少同步,好過成次失敗)。
@@ -75,7 +83,7 @@ npm start        # 執行 production build
   含刪除記錄,可同步/備份(逐個對話 last-write-wins;空白對話不同步;上限 30 個)。
   `migrateConvos()` 在載入時修復舊資料:曾被當成訊息儲存的原始 JSON,以及中文舊標題。
   是 idempotent 的,見 `test/migrate.test.ts`。
-- `savedStore` — 收藏(correction/polish/rewrite/reply/vocab/translation),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
+- `savedStore` — 收藏(correction/polish/rewrite/reply/vocab/translation/phrase),含 SRS 狀態及刪除記錄(tombstone);支援 JSON 匯出入、雲端 merge。
   **新增類別時必須同時更新 `isKind()` 白名單**,否則匯入備份及雲端合併都會把它默默改成 `"reply"`。
   更正/完整句會一併存 `original`(你當時寫錯的版本)同 `explanation`,**複習時才有題目可出**。
 - `srs` — 間隔重複(1→3→7→14→30→60 日)。
@@ -93,6 +101,7 @@ npm start        # 執行 production build
   全部是純函數。**輸入是打出來的中文文字,不涉及語音辨識**;prompt 要求看得懂廣東話口語(唔/咗/嘅/冇…)。
   風格:日常口語、短句、常用字(約 B1),自然但不浮誇,保留語氣,只翻譯、不回答句中的問題。
   被截斷時只取完整的 `english`,不可顯示原始 JSON 或半句。
+  **不可猜性別**:分段翻譯時同一位「陳老師」曾一段譯成 Mr、一段譯成 Miss;未知性別一律寫「Mr/Ms Chan」。
   **長訊息(多段、分項)曾被拆成兩半**:模型只譯第一段就收尾,再「Wait, let me give the full translation」
   輸出第二個物件;或把後半段塞進 `alternatives`。現時 prompt 要求整段放入 `english`、只輸出一個物件、
   長訊息的 `alternatives` 必須為空;`parseTranslation` 亦會逐個拆開頂層物件,**取最後一個有效的**。
@@ -100,6 +109,26 @@ npm start        # 執行 production build
   翻譯歷史只存本機(`english-tutor-translations-v1`,上限 50 項,不同步);值得留低的用 ☆ 收藏。
   收藏為 `translation` 類別:`text` 是英文、`original` 是中文 → 複習時顯示中文,
   提示「Say it in English」,原文不加紅色(它不是寫錯)。
+  **輸入框不可設 `maxLength`**:曾經設為 1000,貼上長文時瀏覽器把超出部分靜靜刪去,用戶只見到
+  譯文「中間被 cut 咗」。現在接近上限才顯示字數,超出就停用「Translate」並說明。
+- `phrases` — 主題句庫的 prompt、解析及本機清單處理(純函數)。三種形式:`sentences`(10 句)、
+  `dialogue`(8–12 行,有 `speaker`)、`patterns`(5 個句式,各附 2–3 個 `examples`)。
+  `zh` 用繁體**書面語**(不是廣東話口語),`note` 是一句繁中用法提示 —— 與糾正解釋一樣屬學習鷹架,
+  所以是介面一律英文的例外。句庫存本機(`english-tutor-phrasesets-v1`,上限 50 批,不同步);
+  ☆ 收藏為 `phrase` 類別:`text` 英文、`original` 中文、`explanation` 提示,複習方式同 `translation`。
+- `quiz` — 三種題型:`recall`(看中文打英文,LCS 比對後自評)、`cloze`(挖去一個關鍵字,本地評分)、
+  `mcq`(四揀一)。**只有 `translation`/`phrase` 的 `original` 是中文**;其他類別的 `original`
+  是用戶寫錯的英文,絕不可當成中文提示。生字不出題。干擾項快取於本機(`english-tutor-quiz-distractors-v1`,
+  上限 500 句),同一句不再扣 points。實測模型會只改時態(wanted → want)或換介詞(during → in),
+  結果仍是正確英文,所以 prompt 要求逐個自我檢查;缺干擾項的題目改出其他題型,寧願少一題也不出只有一個選項的題。
+  結果頁「Review these sooner」:已收藏的排回今日複習(`reviewItem(id, false)`),未收藏的收藏起來。
+- `listen` — 篇章轉語音的分段(`splitPassage`)。實測 elevenlabs-v3 生成 180 字約 26 秒(約 76 秒語音),
+  所以**第一段刻意短**(`FIRST_CHUNK_WORDS` 50 字,以句末為界,最少一句),撳 Play 後數秒便有聲。
+  其餘每段最多 `CHUNK_WORDS`(180)字,短段落合併、
+  過長段落在「句末標點 + 空白」處切(所以 3.5 不會變成 "3. 5")。**只可改動空白,不可改動任何字**,
+  測試會逐字比對。前端三段併發生成、第一段好了就開始播;歷史只存本機(上限 20 篇),
+  語音已在 IndexedDB,重聽不扣 points。上限 `MAX_PASSAGE_WORDS`(3000 字)。
+- `fontScale` — 全 app 字體大小(S/M/L/XL,預設 L)。見下文「慣例」。
 - `scenarios` — 情境 role-play 清單。
 - `backup` — 組裝/還原備份檔(收藏 + 對話)。特意由頁面抽出來,方便測試。
 - `textExport` — 將**用戶在清單上揀選的收藏**匯出成純文字(一項一段,只有句子本身)。
@@ -142,9 +171,16 @@ npm start        # 執行 production build
 - `/saved` 收藏(揀選後播放/匯出 MP3/匯出純文字、備份 JSON、雲端同步)
 - `/review` 今日複習(SRS 卡 + 跟讀評分)
 - `/translate` 中譯英(結果卡附 🔊 ☆ 📋;最新一項貼近輸入框;「Clear history」放清單末端,不放頂部)
+- `/learn` 主題句庫(揀主題/自訂主題、形式、難度 → 一批句子;▶ Play all、☆ Save all、📝 Quiz、＋ More)
+- `/quiz` Quiz(來源:全部收藏或某一批句庫;`/quiz?set=<id>` 由句庫直接進入)
+- `/listen` 篇章轉語音(貼上英文 → 分段生成、連續播放、調速、⬇ MP3、本機歷史)
 - `/login` 密碼閘
 
 `middleware.ts` 保護頁面及成本較高的 API;新增受保護 route 記得加入 matcher。
+
+每頁頂部都有 **Aa**(字體大小)及 **☰**(`NavMenu`,列出所有頁面及登出)。頁面多了,
+逐個掣放在頂部的話,手機標題列會擠到看不見標題,所以次要頁面及登出都放在 ☰ 內。
+新增頁面時記得加入 `NavMenu` 的 `PAGES`。
 
 ## 慣例
 - **介面文字一律用英文**(按鈕、提示、錯誤訊息、metadata、manifest 全部)。
@@ -161,6 +197,10 @@ npm start        # 執行 production build
   否則用倉頡/速成/拼音選字時一按 Enter 就會送出半句。見 `translate/page.tsx`。
 - `.ghost-btn` 有全域基本樣式,`a.ghost-btn` 另設去底線;以 `<Link>` 做的掣否則會變成藍色底線連結。
 - **只靠 `:hover` 的視覺提示在手機上等於沒有**(觸控無 hover)。可點按的字要有靜態樣式。
+- **字體一律用 `rem`,不要寫 `px`**。Aa 掣只改 `<html>` 的字號(`data-font`,見 `lib/fontScale.ts`),
+  寫死 `px` 的字不會跟着放大。M = 舊版大小(16px 根字號),預設 L(18px)—— 舊版在 Galaxy Fold 外屏
+  (約 410px 闊)上偏細。`layout.tsx` 有 inline script 在首次繪製前設好 `data-font`,免得頁面先細後大。
+  padding、圓角等仍用 `px` 無妨。
 - **樣式必須顧及手機**。`globals.css` 設有 `@media (max-width: 640px)` 區塊,將頂部各列壓成單行、
   收起次要資訊。曾經整份樣式表沒有任何 media query,結果介面在 390px 手機上佔去五至七成螢幕高度。
 - 新增 Poe 相關功能前,**先用 curl 實測 endpoint/model 名稱**再寫 code(此 codebase 許多決定都是這樣驗證得來)。
@@ -169,6 +209,11 @@ npm start        # 執行 production build
   型別檢查靠 `npm run build`。
 - 改動 prompt 之後,最好以真實 API 試一兩句(`npm run build && npx next start`,再 curl `/api/chat`),
   單元測試只驗 prompt 的字眼,驗不到模型實際會否照做。
+- **在 Claude Code 雲端環境實測**:Poe key 以 Network secret(Bearer)由代理注入,不在容器內,
+  所以 `.env.local`(已 gitignore)只放佔位值 `QM_POE9_KEY=placeholder`,代理會換上真正的 key。
+  容器只能經 HTTPS 代理連外,而 openai SDK v4 自帶的 node-fetch 不讀代理設定,
+  必須以 `NODE_USE_ENV_PROXY=1 npx next start` 啟動(`poe.ts` 見到此變數便改用 Node 內建 fetch)。
+  `api.poe.com` 及 `*.poecdn.net`(語音檔)都要在環境的網絡設定中允許。
 - **改動收藏或對話資料的形狀就必須加測試**(`test/savedStore.test.ts`、`test/backup.test.ts`)。
   曾有兩個同類 bug:① 匯入備份遺失 `srs`/`meaning`/`example`;② 對話根本沒有備份到。
   單靠計算項目數量抓不到,必須驗欄位。

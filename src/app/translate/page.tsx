@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import FontSizeButton from "@/components/FontSizeButton";
+import NavMenu from "@/components/NavMenu";
 import { useEffect, useRef, useState } from "react";
 import SpeakerButton from "@/components/SpeakerButton";
 import SaveButton from "@/components/SaveButton";
@@ -85,7 +87,7 @@ export default function TranslatePage() {
 
   async function translate() {
     const text = input.trim();
-    if (!text || pending) return;
+    if (!text || pending || text.length > MAX_INPUT_CHARS) return;
     setError(null);
     setPending(text);
     setInput("");
@@ -139,6 +141,9 @@ export default function TranslatePage() {
     setHistory([]);
   }
 
+  const count = input.trim().length;
+  const tooLong = count > MAX_INPUT_CHARS;
+
   // 儲存時最新在前;顯示時倒轉,最新貼近輸入框
   const shown = [...history].reverse();
 
@@ -150,9 +155,8 @@ export default function TranslatePage() {
           <Link className="ghost-btn" href="/saved">
             ★ Saved
           </Link>
-          <Link className="ghost-btn" href="/">
-            ← Back
-          </Link>
+          <FontSizeButton />
+          <NavMenu />
         </div>
       </header>
 
@@ -210,6 +214,13 @@ export default function TranslatePage() {
       </div>
 
       {error && <div className="statusbar error">⚠️ {error}</div>}
+      {/* 不可用 maxLength:它會把貼上的長文靜靜截短。接近上限才顯示字數。 */}
+      {count > MAX_INPUT_CHARS * 0.8 && (
+        <div className={`statusbar${tooLong ? " error" : ""}`}>
+          {count} / {MAX_INPUT_CHARS} characters
+          {tooLong && " — too long. Please shorten it or translate it in two parts."}
+        </div>
+      )}
 
       <div className="composer">
         <textarea
@@ -219,11 +230,14 @@ export default function TranslatePage() {
           onKeyDown={onKeyDown}
           placeholder="Type in Chinese…"
           title="Enter to translate, Shift+Enter for a new line"
-          maxLength={MAX_INPUT_CHARS}
           rows={1}
           lang="zh-Hant"
         />
-        <button className="send" onClick={translate} disabled={!!pending || !input.trim()}>
+        <button
+          className="send"
+          onClick={translate}
+          disabled={!!pending || !input.trim() || tooLong}
+        >
           Translate
         </button>
       </div>

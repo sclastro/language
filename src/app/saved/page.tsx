@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import FontSizeButton from "@/components/FontSizeButton";
+import NavMenu from "@/components/NavMenu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import SpeakerButton from "@/components/SpeakerButton";
 import { fetchTtsUrl, getCachedCdnUrl, playExclusive } from "@/lib/tts";
@@ -45,6 +47,7 @@ const KIND_LABEL: Record<SavedKind, string> = {
   reply: "AI reply",
   vocab: "Word",
   translation: "Translation",
+  phrase: "Phrase",
 };
 
 function fmt(ts: number): string {
@@ -220,7 +223,8 @@ export default function SavedPage() {
           (i.meaning ?? "").toLowerCase().includes(q) ||
           (i.example ?? "").toLowerCase().includes(q) ||
           // 譯文可以用當初輸入的中文找回來
-          (i.kind === "translation" && (i.original ?? "").toLowerCase().includes(q))
+          ((i.kind === "translation" || i.kind === "phrase") &&
+            (i.original ?? "").toLowerCase().includes(q))
       )
       .sort((a, b) => (oldestFirst ? a.savedAt - b.savedAt : b.savedAt - a.savedAt));
   }, [items, oldestFirst, query, kindFilter]);
@@ -366,9 +370,8 @@ export default function SavedPage() {
             hidden
             onChange={importBackup}
           />
-          <Link className="ghost-btn" href="/">
-            ← Back
-          </Link>
+          <FontSizeButton />
+          <NavMenu />
         </div>
       </header>
 
@@ -408,6 +411,7 @@ export default function SavedPage() {
               <option value="reply">AI reply</option>
               <option value="vocab">Word</option>
               <option value="translation">Translation</option>
+              <option value="phrase">Phrase</option>
             </select>
           </div>
 
@@ -484,7 +488,7 @@ export default function SavedPage() {
                       {expanded.has(it.id) ? "Show less" : "Show more"}
                     </button>
                   )}
-                  {it.kind === "translation" && it.original && (
+                  {(it.kind === "translation" || it.kind === "phrase") && it.original && (
                     <div className="saved-vocab-meaning">{it.original}</div>
                   )}
                   {it.kind === "vocab" && it.meaning && (

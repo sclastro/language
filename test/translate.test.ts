@@ -5,6 +5,9 @@ import {
   addToHistory,
   sanitizeHistory,
   MAX_HISTORY,
+  MAX_INPUT_CHARS,
+  splitForTranslation,
+  joinTranslations,
   type TranslationEntry,
 } from "@/lib/translate";
 
@@ -154,4 +157,57 @@ describe("sanitizeHistory", () => {
   it("不是陣列就回空", () => {
     expect(sanitizeHistory({})).toEqual([]);
   });
+});
+
+describe("長文分段翻譯", () => {
+  // 迴歸:舊上限 1000 字,輸入框 maxLength 會把貼上的長文靜靜截短
+  it("上限放寬至 3000 字", () => {
+    expect(MAX_INPUT_CHARS).toBe(3000);
+  });
+
+  it("短文不分段", () => {
+    expect(splitForTranslation("你好,今日得唔得閒?")).toEqual({
+      chunks: ["你好,今日得唔得閒?"],
+      seps: [],
+    });
+  });
+
+  it("只在段落之間切,而且每段不超過上限", () => {
+    const para = (n: number) => "字".repeat(n);
+    const text = [para(400), para(400), para(400)].join("\n\n");
+    const { chunks, seps } = splitForTranslation(text, 1000);
+    expect(chunks).toHaveLength(2);
+    expect(chunks.every((c) => c.length <= 1000)).toBe(true);
+    expect(chunks.join("").replace(/\n/g, "")).toBe(para(1200));
+    expect(seps).toEqual(["\n\n"]);
+  });
+
+  it("單一過長段落在句末切開,不會遺失任何字", () => {
+    const sentence = "我哋下星期會舉行家長日。".repeat(120); // 1440 字,無換行
+    const { chunks } = splitForTranslation(sentence, 1000);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.every((c) => c.length <= 1000)).toBe(true);
+    expect(chunks.every((c) => c.endsWith("。"))).toBe(true);
+    expect(chunks.join("")).toBe(sentence);
+  });
+
+  it("合併譯文時保留原本的分隔(空行 / 單一換行)", () => {
+    expect(joinTranslations(["Dear parents,", "1. Come at 9.", "2. Bring lunch."], ["\n\n", "\n"])).toBe(
+      "Dear parents,\n\n1. Come at 9.\n2. Bring lunch."
+    );
+  });
+
+  it("分段時 prompt 要說明是第幾段,並禁止自行加開頭結尾", () => {
+    const p = buildTranslatePrompt({ index: 2, total: 3 });
+    expect(p).toContain("part 2 of 3");
+    expect(p).toContain("do not add a greeting");
+    expect(buildTranslatePrompt()).not.toContain("part 2 of 3");
+  });
+});
+
+// 實測:分段翻譯時同一位陳老師一段變 Mr、一段變 Miss
+it("不可猜性別,未知時寫 Mr/Ms", () => {
+  const p = buildTranslatePrompt();
+  expect(p).toContain("Never guess anyone's gender");
+  expect(p).toContain("Mr/Ms Chan");
 });

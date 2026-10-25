@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { FONT_INIT_SCRIPT } from "@/lib/fontScale";
 
 export const metadata: Metadata = {
   title: "English Tutor",
@@ -35,7 +36,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    // data-font 由下面的 inline script 在 hydrate 前設定,所以 <html> 屬性與 server 版本不同屬預期
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: FONT_INIT_SCRIPT }} />
+      </head>
       <body>
         {children}
         <ServiceWorkerRegister />
