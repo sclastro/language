@@ -36,7 +36,14 @@ export function getPoeClient(): OpenAI {
     );
   }
   if (!client) {
-    client = new OpenAI({ apiKey, baseURL: POE_BASE_URL });
+    client = new OpenAI({
+      apiKey,
+      baseURL: POE_BASE_URL,
+      // 雲端開發容器只能經 HTTPS 代理連外,而 SDK v4 在 Node 上自帶的 node-fetch 不讀代理設定;
+      // 設了 NODE_USE_ENV_PROXY=1 時改用 Node 內建 fetch(它會讀 HTTPS_PROXY)。
+      // Vercel 不設此變數,線上行為不變。
+      ...(process.env.NODE_USE_ENV_PROXY ? { fetch: globalThis.fetch } : {}),
+    });
   }
   return client;
 }

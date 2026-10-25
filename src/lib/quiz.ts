@@ -183,6 +183,11 @@ export function buildDistractorPrompt(): string {
     "a grammar error (tense, article, preposition, word order, plural), an unnatural word-for-word translation",
     "from Chinese, a wrong collocation, or a small change that gives a different meaning.",
     "NEVER write another acceptable way to say the sentence. Each wrong option must be different from the others.",
+    // 實測:模型會只改時態(wanted → want)或換一個介詞(during → in),結果仍是正確英文,
+    // 學習者揀了反而被判錯。所以要求它逐個自我檢查。
+    "Careful: changing only the tense (wanted → want) or swapping one preposition (during → in) often still gives",
+    "correct English. Check every wrong option: if a native speaker would accept it as correct and natural, replace it",
+    "with one that is definitely wrong.",
     "",
     'Respond with exactly ONE JSON object and nothing else: {"distractors": [[string, string, string], ...]}',
     "with one inner array per input item, in the same order.",

@@ -62,6 +62,10 @@ export function buildTranslatePrompt(part?: TranslatePart): string {
     "- Short, clear sentences and common words (around B1 level). Split long Chinese sentences into shorter English ones.",
     "- Natural but not exaggerated: no heavy slang, no idioms a learner would struggle with, no textbook formality.",
     "- Keep the full meaning and the tone (polite stays polite, casual stays casual). Do not add or drop information.",
+    // 實測:長文分段翻譯時,同一位「陳老師」一段譯成 Mr. Chan、另一段譯成 Miss Chan ——
+    // 各段各自猜性別。不准猜,就前後一致。
+    "- Never guess anyone's gender. For a title such as 陳老師 or 李主任, when the text does not show the gender,",
+    "  write \"Mr/Ms Chan\" (and use \"they\" if a pronoun is needed).",
     "- Translate everything the user wrote, keeping the order. Do not answer questions in the text — just translate them.",
     "- If the input is already English, rewrite it as simple, natural spoken English.",
     "",

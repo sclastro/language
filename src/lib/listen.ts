@@ -11,6 +11,12 @@ import { countWords } from "./ttsLimit";
 /** 每段最多幾個字。太長生成會慢(亦易逾時);太短則段與段之間的停頓變多。 */
 export const CHUNK_WORDS = 180;
 
+/**
+ * 第一段只取約這麼多字(以句末為界)。實測 elevenlabs-v3 生成 180 字要約 26 秒,
+ * 撳 Play 後靜候這麼久太難受;50 字約 8–10 秒便有聲,其餘各段在播放期間於背景生成。
+ */
+export const FIRST_CHUNK_WORDS = 50;
+
 /** 每篇上限:約 20 分鐘朗讀。分段後最多約 20–25 段,在 /api/export 的上限之內。 */
 export const MAX_PASSAGE_WORDS = 3000;
 
@@ -19,10 +25,12 @@ export const MAX_LISTEN_HISTORY = 20;
 
 export type ListenEntry = { id: string; text: string; at: number };
 
+/** 只在「句末標點 + 空白」處切:"3.5"、"e.g.x" 之類中間沒有空白的不會被拆開。 */
+const SENTENCE_END = /(?<=[.!?]["'”’)\]]*)\s+/;
+
 /** 把一段過長的段落按句末(. ! ? 後接空白)切成不超過 `max` 字的幾份。 */
 function splitParagraph(p: string, max: number): string[] {
-  // 只在「句末標點 + 空白」處切:"3.5"、"e.g.x" 之類中間沒有空白的不會被拆開
-  const sentences = p.split(/(?<=[.!?]["'”’)\]]*)\s+/);
+  const sentences = p.split(SENTENCE_END);
   const out: string[] = [];
   let buf = "";
   for (const s of sentences) {
@@ -49,7 +57,11 @@ function splitParagraph(p: string, max: number): string[] {
  * 切成適合 TTS 的段:先按段落,短段落合併(段落之間保留空行,朗讀時自然停頓),
  * 過長段落則按句子切開。結果只會改動段落之間的空白,不會改動任何字。
  */
-export function splitPassage(text: string, max = CHUNK_WORDS): string[] {
+export function splitPassage(
+  text: string,
+  max = CHUNK_WORDS,
+  firstMax = FIRST_CHUNK_WORDS
+): string[] {
   const paras = text
     .replace(/\r\n?/g, "\n")
     .split(/\n\s*\n/)
@@ -57,6 +69,19 @@ export function splitPassage(text: string, max = CHUNK_WORDS): string[] {
     .filter(Boolean)
     .flatMap((p) => (countWords(p) > max ? splitParagraph(p, max) : [p]));
   const chunks: string[] = [];
+  // 第一段刻意短:由第一個段落取句子,直至約 firstMax 字(最少一句),好讓朗讀盡快開始
+  if (paras.length && countWords(paras.join(" ")) > firstMax) {
+    const sentences = paras[0].split(SENTENCE_END);
+    let n = 0;
+    let words = 0;
+    while (n < sentences.length && (n === 0 || words + countWords(sentences[n]) <= firstMax)) {
+      words += countWords(sentences[n]);
+      n++;
+    }
+    chunks.push(sentences.slice(0, n).join(" "));
+    const rest = sentences.slice(n).join(" ");
+    paras.splice(0, 1, ...(rest ? [rest] : []));
+  }
   let cur = "";
   for (const p of paras) {
     if (cur && countWords(cur) + countWords(p) > max) {

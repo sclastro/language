@@ -101,6 +101,7 @@ npm start        # 執行 production build
   全部是純函數。**輸入是打出來的中文文字,不涉及語音辨識**;prompt 要求看得懂廣東話口語(唔/咗/嘅/冇…)。
   風格:日常口語、短句、常用字(約 B1),自然但不浮誇,保留語氣,只翻譯、不回答句中的問題。
   被截斷時只取完整的 `english`,不可顯示原始 JSON 或半句。
+  **不可猜性別**:分段翻譯時同一位「陳老師」曾一段譯成 Mr、一段譯成 Miss;未知性別一律寫「Mr/Ms Chan」。
   **長訊息(多段、分項)曾被拆成兩半**:模型只譯第一段就收尾,再「Wait, let me give the full translation」
   輸出第二個物件;或把後半段塞進 `alternatives`。現時 prompt 要求整段放入 `english`、只輸出一個物件、
   長訊息的 `alternatives` 必須為空;`parseTranslation` 亦會逐個拆開頂層物件,**取最後一個有效的**。
@@ -118,9 +119,12 @@ npm start        # 執行 production build
 - `quiz` — 三種題型:`recall`(看中文打英文,LCS 比對後自評)、`cloze`(挖去一個關鍵字,本地評分)、
   `mcq`(四揀一)。**只有 `translation`/`phrase` 的 `original` 是中文**;其他類別的 `original`
   是用戶寫錯的英文,絕不可當成中文提示。生字不出題。干擾項快取於本機(`english-tutor-quiz-distractors-v1`,
-  上限 500 句),同一句不再扣 points;缺干擾項的題目改出其他題型,寧願少一題也不出只有一個選項的題。
+  上限 500 句),同一句不再扣 points。實測模型會只改時態(wanted → want)或換介詞(during → in),
+  結果仍是正確英文,所以 prompt 要求逐個自我檢查;缺干擾項的題目改出其他題型,寧願少一題也不出只有一個選項的題。
   結果頁「Review these sooner」:已收藏的排回今日複習(`reviewItem(id, false)`),未收藏的收藏起來。
-- `listen` — 篇章轉語音的分段(`splitPassage`)。每段最多 `CHUNK_WORDS`(180)字,短段落合併、
+- `listen` — 篇章轉語音的分段(`splitPassage`)。實測 elevenlabs-v3 生成 180 字約 26 秒(約 76 秒語音),
+  所以**第一段刻意短**(`FIRST_CHUNK_WORDS` 50 字,以句末為界,最少一句),撳 Play 後數秒便有聲。
+  其餘每段最多 `CHUNK_WORDS`(180)字,短段落合併、
   過長段落在「句末標點 + 空白」處切(所以 3.5 不會變成 "3. 5")。**只可改動空白,不可改動任何字**,
   測試會逐字比對。前端三段併發生成、第一段好了就開始播;歷史只存本機(上限 20 篇),
   語音已在 IndexedDB,重聽不扣 points。上限 `MAX_PASSAGE_WORDS`(3000 字)。
@@ -205,6 +209,11 @@ npm start        # 執行 production build
   型別檢查靠 `npm run build`。
 - 改動 prompt 之後,最好以真實 API 試一兩句(`npm run build && npx next start`,再 curl `/api/chat`),
   單元測試只驗 prompt 的字眼,驗不到模型實際會否照做。
+- **在 Claude Code 雲端環境實測**:Poe key 以 Network secret(Bearer)由代理注入,不在容器內,
+  所以 `.env.local`(已 gitignore)只放佔位值 `QM_POE9_KEY=placeholder`,代理會換上真正的 key。
+  容器只能經 HTTPS 代理連外,而 openai SDK v4 自帶的 node-fetch 不讀代理設定,
+  必須以 `NODE_USE_ENV_PROXY=1 npx next start` 啟動(`poe.ts` 見到此變數便改用 Node 內建 fetch)。
+  `api.poe.com` 及 `*.poecdn.net`(語音檔)都要在環境的網絡設定中允許。
 - **改動收藏或對話資料的形狀就必須加測試**(`test/savedStore.test.ts`、`test/backup.test.ts`)。
   曾有兩個同類 bug:① 匯入備份遺失 `srs`/`meaning`/`example`;② 對話根本沒有備份到。
   單靠計算項目數量抓不到,必須驗欄位。

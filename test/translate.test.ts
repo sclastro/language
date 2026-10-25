@@ -204,3 +204,10 @@ describe("長文分段翻譯", () => {
     expect(buildTranslatePrompt()).not.toContain("part 2 of 3");
   });
 });
+
+// 實測:分段翻譯時同一位陳老師一段變 Mr、一段變 Miss
+it("不可猜性別,未知時寫 Mr/Ms", () => {
+  const p = buildTranslatePrompt();
+  expect(p).toContain("Never guess anyone's gender");
+  expect(p).toContain("Mr/Ms Chan");
+});

@@ -7,6 +7,7 @@ import {
   pickQuestions,
   attachOptions,
   parseDistractors,
+  buildDistractorPrompt,
   mergeDistractorCache,
   shuffle,
   type QuizCard,
@@ -118,4 +119,11 @@ describe("mergeDistractorCache / shuffle", () => {
     expect(a).toEqual([1, 2, 3, 4]);
     expect([...b].sort()).toEqual([1, 2, 3, 4]);
   });
+});
+
+// 實測:模型只改時態(wanted → want)或換介詞(during → in),結果仍是正確英文
+it("干擾項 prompt 要求自我檢查,剔除其實正確的選項", () => {
+  const p = buildDistractorPrompt();
+  expect(p).toContain("NEVER write another acceptable way");
+  expect(p).toContain("Check every wrong option");
 });

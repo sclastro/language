@@ -5,6 +5,7 @@ import {
   addListenHistory,
   sanitizeListenHistory,
   CHUNK_WORDS,
+  FIRST_CHUNK_WORDS,
   MAX_PASSAGE_WORDS,
 } from "@/lib/listen";
 import { countWords } from "@/lib/ttsLimit";
@@ -24,7 +25,7 @@ describe("splitPassage", () => {
     const t = `${words(100, "a")}.\n\n${words(60, "b")}.\n\n${words(100, "c")}.`;
     const chunks = splitPassage(t);
     expect(chunks).toHaveLength(2);
-    expect(chunks[0]).toContain("\n\n");
+    expect(chunks[1]).toContain("\n\n");
     expect(chunks.every((c) => countWords(c) <= CHUNK_WORDS)).toBe(true);
   });
 
@@ -57,6 +58,30 @@ describe("splitPassage", () => {
     const para = `${words(95)}.`;
     const t = Array.from({ length: Math.floor(MAX_PASSAGE_WORDS / 95) }, () => para).join("\n\n");
     expect(splitPassage(t).length).toBeLessThanOrEqual(40);
+  });
+});
+
+// 實測 180 字要生成約 26 秒;第一段短,撳 Play 後約 10 秒內便有聲
+describe("第一段刻意短", () => {
+  it("由句子組成,約 FIRST_CHUNK_WORDS 字,其餘照常分段,不遺失任何字", () => {
+    const sentence = "This is a fairly ordinary sentence with ten words.";
+    const t = Array.from({ length: 3 }, () => Array(12).fill(sentence).join(" ")).join("\n\n");
+    const chunks = splitPassage(t);
+    const n = countWords(chunks[0]); // 每句 9 字 → 5 句 = 45 字(再加一句就超過 50)
+    expect(n).toBeLessThanOrEqual(FIRST_CHUNK_WORDS);
+    expect(n).toBeGreaterThan(FIRST_CHUNK_WORDS - 10);
+    expect(chunks[0].endsWith(".")).toBe(true);
+    expect(tokens(chunks.join(" "))).toEqual(tokens(t));
+  });
+
+  it("首句本身已超過上限也整句保留,不在句中切開", () => {
+    const t = `${words(70)}. ${words(100, "b")}.`;
+    expect(countWords(splitPassage(t)[0])).toBe(70);
+  });
+
+  it("開首是短稱呼(例如 Dear parents,)就自成一段", () => {
+    const t = `Dear parents,\n\n${words(100)}.`;
+    expect(splitPassage(t)[0]).toBe("Dear parents,");
   });
 });
 
