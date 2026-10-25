@@ -39,9 +39,32 @@ body {
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", "PingFang HK",
     "Microsoft JhengHei", sans-serif;
-  font-size: 18px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── 字體大小 ─────────────────────────────────────────
+   全份樣式表的字體都以 rem 表示,所以只要改 <html> 的字號,全 app 一齊放大縮小。
+   由頂部 Aa 掣切換(見 lib/fontScale.ts),存於 localStorage;layout.tsx 的 inline
+   script 在首次繪製前就設好 data-font,免得頁面先細後大地跳一下。
+   M = 舊版大小;預設 L —— 舊版在 Galaxy Fold 外屏(約 410px 闊)上偏細。 */
+html {
+  font-size: 18px;
+}
+html[data-font="s"] {
+  font-size: 14.5px;
+}
+html[data-font="m"] {
+  font-size: 16px;
+}
+html[data-font="l"] {
+  font-size: 18px;
+}
+html[data-font="xl"] {
+  font-size: 20.5px;
+}
+body {
+  font-size: 1.125rem;
 }
 
 button,
@@ -93,9 +116,12 @@ a.ghost-btn {
   flex-wrap: wrap;
   background: rgba(255, 253, 249, 0.75);
   backdrop-filter: blur(8px);
+  /* backdrop-filter 會自成一個疊層;不提高 z-index 的話,Aa/☰ 選單會被下面的內容蓋住 */
+  position: relative;
+  z-index: 20;
 }
 .header h1 {
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0;
@@ -187,7 +213,7 @@ a.ghost-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 1.0625rem;
   line-height: 1;
   padding: 3px 5px;
   border-radius: 7px;
@@ -219,7 +245,7 @@ a.ghost-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 1.0625rem;
   line-height: 1;
   padding: 3px 5px;
   border-radius: 7px;
@@ -240,7 +266,7 @@ a.ghost-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1;
   padding: 3px 5px;
   border-radius: 7px;
@@ -267,12 +293,12 @@ a.ghost-btn {
   border-left: 3px solid var(--warn);
   border-radius: 12px;
   padding: 12px 14px;
-  font-size: 16px;
+  font-size: 1rem;
   box-shadow: var(--shadow-sm);
 }
 .correction .c-head {
   color: var(--warn);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   margin-bottom: 7px;
@@ -314,7 +340,7 @@ a.ghost-btn {
 }
 .correction .rewrite-head {
   color: var(--good);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 5px;
 }
@@ -349,7 +375,7 @@ a.ghost-btn {
 }
 .correction .polish-head {
   color: var(--info);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   margin-bottom: 7px;
@@ -375,7 +401,7 @@ a.ghost-btn {
 }
 .correction .natural-head {
   color: var(--info);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   margin-bottom: 5px;
@@ -439,7 +465,7 @@ a.ghost-btn {
   width: 50px;
   height: 50px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 1.25rem;
   line-height: 1;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, background 0.15s;
@@ -468,7 +494,7 @@ a.ghost-btn {
 
 .statusbar {
   padding: 7px 18px 11px;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--muted);
   display: flex;
   gap: 14px;
@@ -488,7 +514,7 @@ a.ghost-btn {
 }
 .typing {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-style: italic;
   padding-left: 4px;
 }
@@ -520,7 +546,7 @@ a.ghost-btn {
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   padding: 5px 8px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
   max-width: 40vw;
 }
@@ -529,14 +555,14 @@ a.ghost-btn {
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   padding: 5px 10px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
 }
 .convo-bar .ghost-btn:hover {
   border-color: var(--accent);
 }
 .empty-hint {
-  font-size: 14px;
+  font-size: 0.875rem;
   display: inline-block;
   margin-top: 8px;
 }
@@ -568,7 +594,7 @@ a.ghost-btn {
     grid-column: 1 / -1;
   }
   .header h1 {
-    font-size: 17px;
+    font-size: 1.0625rem;
     order: 1;
     flex: 1 1 auto;
     min-width: 0;
@@ -597,13 +623,13 @@ a.ghost-btn {
   }
   .header select {
     padding: 5px 6px;
-    font-size: 14px;
+    font-size: 0.875rem;
     flex: 1 1 0;
     min-width: 0;
   }
   .header .ghost-btn {
     padding: 5px 9px;
-    font-size: 14px;
+    font-size: 0.875rem;
     white-space: nowrap;
   }
   /* 數字大(例如 Review 51)會把標題擠成「Engli…」,所以手機只留圖示 + 數字 */
@@ -622,13 +648,13 @@ a.ghost-btn {
     flex: 1 1 0;
     min-width: 0;
     max-width: none;
-    font-size: 14px;
+    font-size: 0.875rem;
     padding: 5px 6px;
   }
   .convo-bar .ghost-btn {
     flex: 0 0 auto;
     padding: 5px 8px;
-    font-size: 14px;
+    font-size: 0.875rem;
     white-space: nowrap;
   }
 
@@ -637,12 +663,12 @@ a.ghost-btn {
     gap: 12px;
   }
   .empty {
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1.65;
     padding: 0 4px;
   }
   .empty-hint {
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 
   /* 輸入列:提示文字喺手機唔會再換三行(見 page.tsx 嘅短 placeholder) */
@@ -664,13 +690,13 @@ a.ghost-btn {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    font-size: 18px;
+    font-size: 1.125rem;
   }
 
   /* 狀態列壓成一行:模型名(頂部已有)同本月統計喺手機收起 */
   .statusbar {
     padding: 5px 12px 8px;
-    font-size: 12px;
+    font-size: 0.75rem;
     gap: 10px;
     flex-wrap: nowrap;
     overflow: hidden;
@@ -696,7 +722,7 @@ a.ghost-btn {
   .header .controls .ghost-btn,
   .header .controls button {
     padding: 4px 8px;
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
   .saved-toolbar {
     padding: 7px 12px;
@@ -705,10 +731,10 @@ a.ghost-btn {
   }
   .saved-toolbar button {
     padding: 5px 9px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .saved-count {
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
   /* 計數跟 Select all／排序同一行,唔好獨佔一行 */
   .saved-toolbar-right {
@@ -729,11 +755,11 @@ a.ghost-btn {
     border-radius: 10px;
   }
   .saved-text {
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1.45;
   }
   .saved-vocab-meaning {
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 }
 
@@ -755,7 +781,7 @@ a.ghost-btn {
   color: var(--accent);
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 /* ---- tappable words + vocab sheet ---- */
@@ -793,7 +819,7 @@ a.ghost-btn {
   box-shadow: 0 -8px 30px rgba(60, 45, 30, 0.15);
 }
 .sheet-word {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -828,7 +854,7 @@ a.ghost-btn {
 }
 .review-progress {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .review-card {
   width: 100%;
@@ -844,10 +870,10 @@ a.ghost-btn {
 }
 .review-kind {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .review-text {
-  font-size: 21px;
+  font-size: 1.3125rem;
   font-weight: 600;
   line-height: 1.5;
 }
@@ -871,7 +897,7 @@ a.ghost-btn {
   border-radius: 12px;
   padding: 13px;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 1.0625rem;
   cursor: pointer;
   color: #fff;
 }
@@ -898,7 +924,7 @@ a.ghost-btn {
   border-radius: 10px;
   padding: 7px 13px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .pron-btn.recording {
   background: rgba(192, 73, 47, 0.12);
@@ -907,7 +933,7 @@ a.ghost-btn {
 }
 .pron-err {
   color: var(--danger);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pron-result {
   display: flex;
@@ -916,7 +942,7 @@ a.ghost-btn {
   background: var(--bg-2);
   border-radius: 10px;
   padding: 10px 12px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .pron-score {
   font-weight: 700;
@@ -940,11 +966,11 @@ a.ghost-btn {
 }
 .pron-heard {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .saved-vocab-meaning {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 0.9375rem;
   margin-top: 3px;
 }
 .chip-vocab {
@@ -963,7 +989,7 @@ a.ghost-btn {
 }
 .saved-count {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .saved-toolbar-right {
   margin-left: auto;
@@ -1022,10 +1048,10 @@ a.ghost-btn {
   gap: 9px;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .chip {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
@@ -1051,6 +1077,10 @@ a.ghost-btn {
 .chip-translation {
   background: #e6f0e9;
   color: #3d7a55;
+}
+.chip-phrase {
+  background: #f3ece0;
+  color: #8a6326;
 }
 .saved-actions {
   display: flex;
@@ -1082,17 +1112,17 @@ a.ghost-btn {
   box-shadow: var(--shadow);
 }
 .login-icon {
-  font-size: 34px;
+  font-size: 2.125rem;
 }
 .login-card h1 {
-  font-size: 23px;
+  font-size: 1.4375rem;
   margin: 0;
   letter-spacing: -0.01em;
 }
 .login-sub {
   color: var(--muted);
   margin: 0 0 6px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .login-card input {
   background: var(--panel-2);
@@ -1125,7 +1155,7 @@ a.ghost-btn {
 }
 .login-error {
   color: var(--danger);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 /* 頂部導覽的數字(Review / Saved 的計數) */
@@ -1150,7 +1180,7 @@ a.ghost-btn {
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   padding: 7px 11px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   box-shadow: var(--shadow-sm);
 }
 .saved-filter input[type="search"]:focus {
@@ -1164,13 +1194,13 @@ a.ghost-btn {
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   padding: 7px 8px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
 }
 /* 下次複習的狀態(new / due now / in N days) */
 .saved-next {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
 }
 @media (max-width: 640px) {
@@ -1180,11 +1210,11 @@ a.ghost-btn {
   }
   .saved-filter input[type="search"],
   .saved-filter select {
-    font-size: 14px;
+    font-size: 0.875rem;
     padding: 6px 8px;
   }
   .saved-next {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 }
 
@@ -1193,7 +1223,7 @@ a.ghost-btn {
    有原句就先顯示你寫錯的版本,揭曉後才見正確講法。 */
 .review-prompt-label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   margin-bottom: 4px;
@@ -1207,7 +1237,7 @@ a.ghost-btn {
 }
 .review-hint {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
   margin: 8px 0 4px;
 }
 
@@ -1261,7 +1291,7 @@ a.ghost-btn {
   align-items: flex-start;
   gap: 8px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 0.9375rem;
   white-space: pre-wrap;
   margin-bottom: 6px;
 }
@@ -1273,7 +1303,7 @@ a.ghost-btn {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1;
   padding: 0 4px;
   cursor: pointer;
@@ -1298,7 +1328,7 @@ a.ghost-btn {
   white-space: pre-wrap;
 }
 .tr-main .tr-text {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.45;
 }
@@ -1314,7 +1344,7 @@ a.ghost-btn {
 }
 .tr-alts-head {
   color: var(--info);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   margin-bottom: 5px;
 }
@@ -1323,7 +1353,7 @@ a.ghost-btn {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   text-decoration: underline;
   cursor: pointer;
   padding: 4px 8px;
@@ -1342,5 +1372,405 @@ a.ghost-btn {
   }
   .tr-text {
     flex-basis: 100%;
+  }
+}
+
+/* ---- Aa 字體選單、☰ 頁面選單 ---- */
+.font-menu,
+.nav-menu {
+  position: relative;
+  display: inline-flex;
+}
+.font-pop,
+.nav-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+.font-pop {
+  display: flex;
+  gap: 4px;
+}
+.font-opt {
+  min-width: 2.6rem;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  font-weight: 600;
+}
+.font-opt.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--user-text);
+}
+/* 掣上的字母大小本身就示範效果(按根字號計,所以不用 rem) */
+.font-opt-s {
+  font-size: 13px;
+}
+.font-opt-m {
+  font-size: 15px;
+}
+.font-opt-l {
+  font-size: 17px;
+}
+.font-opt-xl {
+  font-size: 19px;
+}
+.nav-pop {
+  display: flex;
+  flex-direction: column;
+  min-width: 13rem;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.nav-item:hover,
+.nav-item.on {
+  background: var(--accent-soft);
+}
+.nav-icon {
+  width: 1.4em;
+  text-align: center;
+}
+
+/* ---- 篇章轉語音(/listen) ---- */
+.listen-wrap {
+  gap: 10px;
+}
+.listen-input {
+  width: 100%;
+  min-height: 38vh;
+  resize: vertical;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 12px 14px;
+  line-height: 1.6;
+  box-shadow: var(--shadow-sm);
+}
+.listen-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.listen-count {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-align: right;
+}
+.listen-count.over {
+  color: var(--danger);
+}
+.listen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.listen-controls select {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 6px 8px;
+}
+.listen-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.listen-bar {
+  flex-basis: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+.listen-bar > div {
+  height: 100%;
+  background: var(--good);
+  transition: width 0.3s;
+}
+.listen-history {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.listen-history-head {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.lh-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.lh-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.lh-title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lh-meta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.grade-btn.neutral {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* ---- 主題句庫(/learn) ---- */
+.learn-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.learn-form select,
+.learn-custom {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 9px;
+  min-width: 0;
+}
+.learn-custom:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+/* 放不下就讓掣換到下一行並拉闊;不換行的話,兩個下拉會被擠到只剩三四個字母 */
+.learn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.learn-row select {
+  flex: 1 1 8rem;
+}
+.learn-row .primary-btn {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+.ps-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ps-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.ps-title {
+  font-weight: 700;
+}
+.ps-meta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.ps-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ps-actions .ghost-btn {
+  padding: 5px 9px;
+  font-size: 0.875rem;
+}
+.ps-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ps-item {
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+.ps-item .tr-text {
+  font-weight: 600;
+}
+.ps-speaker {
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.ps-zh {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.ps-note {
+  color: var(--info);
+  font-size: 0.875rem;
+  margin-top: 3px;
+}
+.ps-examples {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 3px solid var(--info-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ps-example .tr-text {
+  font-weight: 500;
+}
+
+/* ---- Quiz(/quiz) ---- */
+.quiz-setup label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.quiz-setup select {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 8px 9px;
+  color: var(--text);
+  font-size: 1rem;
+}
+.quiz-avail {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.quiz-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+.quiz-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.quiz-blank {
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+.quiz-right {
+  color: var(--good);
+  text-decoration: underline;
+}
+.quiz-wrong {
+  color: var(--danger);
+  text-decoration: underline;
+}
+.quiz-verdict.good {
+  color: var(--good);
+  font-weight: 700;
+}
+.quiz-verdict.bad {
+  color: var(--danger);
+  font-weight: 700;
+}
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quiz-option {
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 11px 13px;
+  cursor: pointer;
+  line-height: 1.45;
+}
+.quiz-option:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.quiz-option:disabled {
+  cursor: default;
+  color: var(--text);
+}
+.quiz-option.right {
+  background: var(--good-soft);
+  border-color: var(--good);
+}
+.quiz-option.wrong {
+  background: #fbe9e4;
+  border-color: var(--danger);
+}
+.quiz-option.dim {
+  opacity: 0.55;
+}
+.quiz-compare {
+  background: var(--panel-2);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.quiz-score {
+  font-size: 2.25rem;
+  font-weight: 800;
+  text-align: center;
+}
+.quiz-missed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quiz-missed-zh {
+  display: block;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+@media (max-width: 640px) {
+  .learn-form {
+    padding: 8px 12px;
+  }
+  .review-card {
+    padding: 16px;
   }
 }

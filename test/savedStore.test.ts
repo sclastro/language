@@ -222,3 +222,23 @@ describe("translation(中譯英)類別", () => {
     expect(it0.original).toBe("唔好意思,我遲少少到");
   });
 });
+
+// 新增類別時必須更新 isKind():否則匯入/合併會靜靜改成 "reply"
+describe("phrase 類別(主題句庫)", () => {
+  it("匯入備份保住類別、中文意思及用法提示", async () => {
+    const s = await freshStore();
+    s.importSavedItems([
+      { text: "See you soon.", kind: "phrase", savedAt: 1, original: "遲些見。", explanation: "道別用語" },
+    ]);
+    const [it] = s.getAllSaved();
+    expect(it.kind).toBe("phrase");
+    expect(it.original).toBe("遲些見。");
+    expect(it.explanation).toBe("道別用語");
+  });
+
+  it("雲端合併不會把它改成 reply", () => {
+    const merged = mergeSaved([item({ kind: "phrase", original: "你好" })], []);
+    expect(merged[0].kind).toBe("phrase");
+    expect(merged[0].original).toBe("你好");
+  });
+});

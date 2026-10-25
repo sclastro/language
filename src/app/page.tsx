@@ -5,6 +5,8 @@ import Link from "next/link";
 import CorrectionCard from "@/components/CorrectionCard";
 import SpeakerButton from "@/components/SpeakerButton";
 import SaveButton from "@/components/SaveButton";
+import FontSizeButton from "@/components/FontSizeButton";
+import NavMenu from "@/components/NavMenu";
 import VocabSheet, {
   TappableText,
   lookupWord,
@@ -61,7 +63,6 @@ export default function Home() {
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [gated, setGated] = useState(false);
   const [lookup, setLookup] = useState<LookupState | null>(null);
   const [dueCount, setDueCount] = useState(0);
   // 朗讀速度(全 app 共用,存 localStorage)。1 = 原速。
@@ -105,7 +106,6 @@ export default function Home() {
       /* ignore */
     }
     setHydrated(true);
-    setGated(document.cookie.split("; ").some((c) => c === "et_ui=1"));
     setDueCount(dueItems().length);
     setRate(getSpeechRate());
   }, []);
@@ -128,10 +128,6 @@ export default function Home() {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight });
   }, [items, loading, streamText]);
 
-  async function logout() {
-    await fetch("/api/logout", { method: "POST" }).catch(() => {});
-    window.location.href = "/login";
-  }
 
   async function onWordTap(word: string, sentence: string) {
     setLookup({ word, sentence, loading: true });
@@ -325,6 +321,9 @@ export default function Home() {
           </select>
         </div>
         <div className="ctl-nav">
+          <Link className="ghost-btn" href="/learn" title="Phrase library: sentences by topic">
+            📚 <span className="nav-label">Learn</span>
+          </Link>
           <Link className="ghost-btn" href="/translate" title="Chinese → simple English">
             🌐 <span className="nav-label">Translate</span>
           </Link>
@@ -338,11 +337,9 @@ export default function Home() {
               <span className="nav-count">{savedItems.length}</span>
             )}
           </Link>
-          {gated && (
-            <button className="ghost-btn" onClick={logout} title="Log out">
-              🔒
-            </button>
-          )}
+          <FontSizeButton />
+          {/* 其餘頁面(Quiz、Text to speech)及登出都在 ☰ 內,免得手機標題列擠爆 */}
+          <NavMenu />
         </div>
       </header>
 

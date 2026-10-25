@@ -24,10 +24,34 @@ export type TranslationEntry = Translation & {
 /** 歷史最多保留多少項(只存本機,不同步)。 */
 export const MAX_HISTORY = 50;
 
-/** 輸入長度上限(字元)。日常溝通用,過長的內容不是這個功能的目的。 */
-export const MAX_INPUT_CHARS = 1000;
+/**
+ * 輸入長度上限(字元)。
+ *
+ * ⚠️ 曾經是 1000,而輸入框又設了同值的 `maxLength` —— 貼上長文時瀏覽器會把超出部分
+ * **靜靜刪去**,用戶只見到譯文「中間被 cut 咗」。現在放寬至 3000(一封長電郵或一份通告),
+ * 輸入框不再設 `maxLength`,超出時改為顯示字數並停用「Translate」。
+ */
+export const MAX_INPUT_CHARS = 3000;
 
-export function buildTranslatePrompt(): string {
+/**
+ * 超過這個長度就分段翻譯(server 端併發處理)。
+ * 一次過譯 3000 字,輸出要二千多個 token,很容易超出 serverless 時限;
+ * 分成幾段同時譯,每段十多秒便完成,總時間與譯一段相若。
+ */
+export const CHUNK_CHARS = 1000;
+
+/** 分段翻譯時的位置(第幾段/共幾段),讓模型知道前後還有內容,不要自行收尾。 */
+export type TranslatePart = { index: number; total: number };
+
+export function buildTranslatePrompt(part?: TranslatePart): string {
+  const partNote = part
+    ? [
+        "",
+        `The user's text is long, so it was split. This is part ${part.index} of ${part.total}.`,
+        "Translate ONLY this part, completely. It may start or end mid-flow — do not add a greeting,",
+        "a closing, or anything that is not in this part. `alternatives` must be an empty array.",
+      ]
+    : [];
   return [
     "You turn Chinese into simple spoken English that the user can say or send right away.",
     "The input is typed Chinese: Hong Kong Cantonese colloquial writing (e.g. 唔、咗、嘅、喺、冇、啲) or standard written Chinese,",
@@ -55,7 +79,75 @@ export function buildTranslatePrompt(): string {
     "Write the complete translation the first time; never output a second, corrected object.",
     "Use exactly this shape:",
     '{"english": string, "alternatives": [string]}',
+    ...partNote,
   ].join("\n");
+}
+
+/**
+ * 把長文切成不超過 `max` 字元的段落組,只在換行處切;單一段落太長才在句末(。！？；)切。
+ * `seps[i]` 是第 i 段與第 i+1 段之間原本的分隔(空行或單一換行),合併譯文時照用,
+ * 否則分段與 1. 2. 3. 的排版會走樣。
+ */
+export function splitForTranslation(
+  text: string,
+  max = CHUNK_CHARS
+): { chunks: string[]; seps: string[] } {
+  const t = text.trim();
+  if (t.length <= max) return { chunks: [t], seps: [] };
+
+  // 先拆成「單位」(一行,或過長行中的一句),各自記住後面接的分隔
+  const units: { text: string; sep: string }[] = [];
+  const parts = t.split(/(\n\s*\n|\n)/);
+  for (let i = 0; i < parts.length; i += 2) {
+    const line = parts[i].trim();
+    const sep = /\n\s*\n/.test(parts[i + 1] ?? "") ? "\n\n" : "\n";
+    if (!line) continue;
+    if (line.length <= max) {
+      units.push({ text: line, sep });
+      continue;
+    }
+    // 過長的一行:按句末標點切,保留標點
+    const sentences = line.match(/[^。！？；!?;]+[。！？；!?;]*/g) ?? [line];
+    let buf = "";
+    for (const s of sentences) {
+      if (buf && buf.length + s.length > max) {
+        units.push({ text: buf, sep: "" });
+        buf = "";
+      }
+      // 單句仍然太長(沒有標點)就硬切
+      let rest = s;
+      while (rest.length > max) {
+        units.push({ text: rest.slice(0, max), sep: "" });
+        rest = rest.slice(max);
+      }
+      buf += rest;
+    }
+    if (buf) units.push({ text: buf, sep });
+  }
+
+  const chunks: string[] = [];
+  const seps: string[] = [];
+  let cur = "";
+  let curSep = "";
+  for (const u of units) {
+    if (cur && cur.length + curSep.length + u.text.length > max) {
+      chunks.push(cur);
+      seps.push(curSep === "" ? " " : curSep);
+      cur = u.text;
+    } else {
+      cur = cur ? cur + curSep + u.text : u.text;
+    }
+    curSep = u.sep;
+  }
+  if (cur) chunks.push(cur);
+  return { chunks, seps };
+}
+
+/** 把各段譯文按原本的分隔接回一篇。 */
+export function joinTranslations(parts: string[], seps: string[]): string {
+  return parts
+    .map((p, i) => (i === 0 ? p.trim() : (seps[i - 1] ?? "\n\n") + p.trim()))
+    .join("");
 }
 
 /**

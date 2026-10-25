@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import FontSizeButton from "@/components/FontSizeButton";
+import NavMenu from "@/components/NavMenu";
 import { useEffect, useState } from "react";
 import SpeakerButton from "@/components/SpeakerButton";
 import PronPractice from "@/components/PronPractice";
@@ -41,7 +43,8 @@ export default function ReviewPage() {
   // 提示語亦要由「講得啱」改為「講得自然」,否則會令人以為自己當時寫錯了。
   const isPolish = current?.kind === "polish";
   // 中譯英:原文是中文,不是「寫錯」亦不是「生硬」,出題方式是「用英文講出來」。
-  const isTranslation = current?.kind === "translation";
+  // 句庫的句子(phrase)出題方式相同:看中文意思,講出英文。
+  const isTranslation = current?.kind === "translation" || current?.kind === "phrase";
   /**
    * 有原句就出題:先只顯示你當時寫錯的版本,由你講出正確講法,再揭曉。
    * 冇原句(舊資料或 AI 回應)就只能直接顯示 —— 見下面的提示。
@@ -57,9 +60,8 @@ export default function ReviewPage() {
           <Link className="ghost-btn" href="/saved">
             ★ Saved
           </Link>
-          <Link className="ghost-btn" href="/">
-            ← Back
-          </Link>
+          <FontSizeButton />
+          <NavMenu />
         </div>
       </header>
 
@@ -93,9 +95,11 @@ export default function ReviewPage() {
                 ? "Word"
                 : isPolish
                   ? "More natural"
-                  : isTranslation
-                    ? "Translation"
-                    : "Sentence"}{" "}
+                  : current.kind === "phrase"
+                    ? "Phrase"
+                    : isTranslation
+                      ? "Translation"
+                      : "Sentence"}{" "}
               · saved{" "}
               {new Date(current.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </div>
@@ -103,7 +107,11 @@ export default function ReviewPage() {
             {hasPrompt && !revealed ? (
               <>
                 <div className="review-prompt-label">
-                  {isTranslation ? "You wanted to say" : "You wrote"}
+                  {current.kind === "phrase"
+                    ? "In Chinese"
+                    : isTranslation
+                      ? "You wanted to say"
+                      : "You wrote"}
                 </div>
                 <div
                   className={`review-text ${
